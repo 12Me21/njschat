@@ -1,12 +1,15 @@
 {
-	 "main": "main.js",
-	 "repository": {"type": "git", "url": "https://github.io/12Me21/njschat.git"},
-	 "dependencies": {
-		  "isomorphic-ws": "*",
-		  "xmlhttprequest": "*",
-		  "blessed": "*",
-		  "ws": "*"
-	 }
+	"main": "main.js",
+	"repository": {"type": "git", "url": "https://github.io/12Me21/njschat.git"},
+	"dependencies": {
+		"isomorphic-ws": "*",
+		"xmlhttprequest": "*",
+		"blessed": "*",
+		"ws": "*"
+	},
+	"peerDependencies": {
+		"padleft": "\n\u001B[D\u001B[43;30mMA BALLS\nDon't worry about these warnings lol\n"
+	}
 }
 	 
 	 

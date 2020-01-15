@@ -15,6 +15,9 @@ var input = blessed.textbox({
 	height: 2,
 	//inputOnFocus: true,
 	keys: ["C-c"],
+	style: {
+		bg: "#EEEEFF"
+	}
 })
 
 var divider = blessed.box({
@@ -80,6 +83,16 @@ input.key('up', function(ch, key) {
 
 input.key('down', function(ch, key) {
 	messagepane.scroll(1);
+	screen.render();
+});
+
+input.key('pageup', function(ch, key) {
+	messagepane.scroll(-(messagepane.height-2));
+	screen.render();
+});
+
+input.key('pagedown', function(ch, key) {
+	messagepane.scroll(messagepane.height-2);
 	screen.render();
 });
 
