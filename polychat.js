@@ -212,23 +212,23 @@ function PolyChat(logger)
 		{
 			log("Starting proxy. URL: " + this.proxyURL + ", ID: " + this.proxyID, LogSystem.DebugLevel);
 			sendProxyMessage("proxyStart", null, function(json)
-							 {
-								 if(json.result !== -1)
-								 {
-									 log("Proxy started successfully", LogSystem.DebugLevel);
-								 }
-								 else
-								 {
-									 log("Proxy ID already in use. Sharing session: " + myself.proxyID, LogSystem.InfoLevel);
-									 myself.requestUserList();
-									 myself.requestMessageList();
-								 }
+								  {
+									  if(json.result !== -1)
+									  {
+										  log("Proxy started successfully", LogSystem.DebugLevel);
+									  }
+									  else
+									  {
+										  log("Proxy ID already in use. Sharing session: " + myself.proxyID, LogSystem.InfoLevel);
+										  myself.requestUserList();
+										  myself.requestMessageList();
+									  }
 
-								 connected = true;
-								 sendProxyMessage("proxySend", JSON.stringify(connectMessage));
-								 setTimeout(retrieveProxyMessages, myself.retrieveInterval / 2);
-								 burstRetrieveProxyMessages(200,1);
-							 });
+									  connected = true;
+									  sendProxyMessage("proxySend", JSON.stringify(connectMessage));
+									  setTimeout(retrieveProxyMessages, myself.retrieveInterval / 2);
+									  burstRetrieveProxyMessages(200,1);
+								  });
 		}
 	};
 
@@ -299,34 +299,34 @@ function PolyChat(logger)
 	var retrieveProxyMessages = function(singleRun)
 	{
 		sendProxyMessage("proxyReceive", {data: null, lastretrieve: lastretrieve}, function(json)
-						 {
-							 var i;
+							  {
+								  var i;
 
-							 if(json.result === false)
-							 {
-								 var allErrors = "";
-								 for(i = 0; i < json.errors.length; i++)
-									 allErrors += json.errors[i] + (i < json.errors.length - 1 ? " /" : "");
+								  if(json.result === false)
+								  {
+									  var allErrors = "";
+									  for(i = 0; i < json.errors.length; i++)
+										  allErrors += json.errors[i] + (i < json.errors.length - 1 ? " /" : "");
 
-								 doOnError("Proxy received errors: " + allErrors);
-								 myself.close("received proxy errors");
-							 }
+									  doOnError("Proxy received errors: " + allErrors);
+									  myself.close("received proxy errors");
+								  }
 
-							 log("Received ChatProxy message with " + json.result.length + " queued messages", LogSystem.TraceLevel);
-							 lastRetrieve = json.result.lastretrieve;
+								  log("Received ChatProxy message with " + json.result.length + " queued messages", LogSystem.TraceLevel);
+								  lastRetrieve = json.result.lastretrieve;
 
-							 for(i = 0; i < json.result.length; i++)
-								 doOnMessage(JSON.parse(json.result[i]));
+								  for(i = 0; i < json.result.length; i++)
+									  doOnMessage(JSON.parse(json.result[i]));
 
-							 if(connected)
-							 {
-								 if(!singleRun) setTimeout(retrieveProxyMessages, myself.retrieveInterval);
-							 }
-							 else
-							 {
-								 log("ChatProxy will stop retrieving messages; it's no longer connected", LogSystem.WarningLevel);
-							 }
-						 });
+								  if(connected)
+								  {
+									  if(!singleRun) setTimeout(retrieveProxyMessages, myself.retrieveInterval);
+								  }
+								  else
+								  {
+									  log("ChatProxy will stop retrieving messages; it's no longer connected", LogSystem.WarningLevel);
+								  }
+							  });
 	};
 
 	var burstRetrieveProxyMessages = function(interval, times)
