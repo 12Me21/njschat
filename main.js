@@ -1,3 +1,5 @@
+require("./patch.js");
+
 var Graphics = require("./graphics.js");
 
 var PolyChat = require("./polychat.js").PolyChat;
@@ -45,7 +47,10 @@ function displayMessage(messageJSON){
 	} else if(type === "module") {
 		print_tmp(unescape_html(message));
 	} else if (type === "message") {
-		print_tmp(username + ": " + unescape_html(message));
+		if (messageJSON.encoding == "draw")
+			message = "[drawing]";
+		
+		print_tmp("["+tag+"]"+username + ": " + unescape_html(message));
 	} else {
 		console.log("Tried to display an unknown message type: " );
 		return;
@@ -77,6 +82,8 @@ function onMessage(msg) {
       //Now reformat the user list
       //refreshUserList(msg.users);
       //refreshRoomList(msg.rooms, msg.users);
+
+		var x=Graphics.draw_userlist(msg.users);
       lastUserList = msg.users;
       break;
    case 'messageList':
@@ -142,7 +149,7 @@ process.on('SIGINT', function() {
 Auth(function(_auth, uid, session){
 	auth=_auth;
 	polyChat.proxyURL += "?session="+session;
-	polyChat.start(uid, auth, !PolyChat.ForceXHR);
+	polyChat.start(uid, auth, process.argv.length==3 ? PolyChat.ForceXHR : 0);
 	Graphics.input.on("submit",function(text){
 		//print_tmp(text);
 		sendMessage(text);
