@@ -4,7 +4,7 @@ var Graphics = require("./graphics.js");
 
 var PolyChat = require("./polychat.js").PolyChat;
 const Auth = require("./auth.js").Auth;
-var polyChat = new PolyChat();
+var polyChat = new PolyChat(Graphics);
 polyChat.onMessage = onMessage;
 
 var auth;
@@ -25,16 +25,17 @@ function unescape_html(string){
 		.replace(/&amp;/g,"&");
 }
 
-function print_tmp(text){
-	Graphics.messagepane.pushLine(text);
-	Graphics.messagepane.scrollTo(Infinity);
-	Graphics.render();
+function print_tmp(text, tag, color){
+	if (color){
+		text = "{"+color+"-fg}"+text+"{/"+color+"-fg}";
+	}
+	Graphics.print(text, tag);
 }
 
 function displayMessage(messageJSON){
 	var message = getOrDefault(messageJSON.message, "");
 	var type = getOrDefault(messageJSON.type, "");
-	var tag = getOrDefault(messageJSON.tag, "");
+	var tag = getOrDefault(messageJSON.tag, "any");
 	var sender = getOrDefault(messageJSON.sender, {});
 	var uid = getOrDefault(sender.uid, -1);
 	var username = getOrDefault(sender.username, "");
@@ -43,16 +44,16 @@ function displayMessage(messageJSON){
 	var safe = getOrDefault(messageJSON.safe, "unknown");
 
 	if(type === "system" || type === "warning") {
-		print_tmp(unescape_html(message));
+		print_tmp(unescape_html(message), tag);
 	} else if(type === "module") {
-		print_tmp(unescape_html(message));
+		print_tmp(unescape_html(message), tag, "gray");
 	} else if (type === "message") {
 		if (messageJSON.encoding == "draw")
 			message = "[drawing]";
 		
-		print_tmp("["+tag+"]"+username + ": " + unescape_html(message));
+		print_tmp(username + ": " + unescape_html(message), tag);
 	} else {
-		console.log("Tried to display an unknown message type: " );
+		print_tmp("Tried to display an unknown message type: ");
 		return;
 	}
 	for(i = 0; i < messageCallbacks.length; i++) {
@@ -82,7 +83,7 @@ function onMessage(msg) {
       //Now reformat the user list
       //refreshUserList(msg.users);
       //refreshRoomList(msg.rooms, msg.users);
-
+		Graphics.update_room_list(msg.rooms);
 		var x=Graphics.draw_userlist(msg.users);
       lastUserList = msg.users;
       break;
@@ -133,10 +134,19 @@ function onMessage(msg) {
 }
 
 function sendMessage(message,addCommand){
+	if (message.substr(0,5)=="/tab "){
+		var name = message.substr(5).trim().toLowerCase();
+		if (Graphics.messagepanes[name]) {
+			Graphics.switch_pane(name);
+		} else {
+			print_tmp("Unknown room. Rooms: "+Object.keys(Graphics.messagepanes).join(" "),"any");
+		}
+		return;
+	}
 	if(message.trim().length===0)
 		return;
 	var json={
-		'type':'message','text':message,'key':auth,'tag':'offtopic'
+		'type':'message','text':message,'key':auth,'tag':Graphics.current_pane()
 	};
 	polyChat.sendMessage(JSON.stringify(json));
 }

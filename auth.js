@@ -63,8 +63,7 @@ function session2auth(session, callback){
 function get_login(callback){
 	Graphics.render();
 	var username;
-	Graphics.separator.setText("Username:");
-	Graphics.render();
+	Graphics.write_divider("Username:");
 	Graphics.input.on("submit",fuck1);
 	function fuck1(text){
 		username = text;
@@ -73,12 +72,11 @@ function get_login(callback){
 		Graphics.input.clearValue();
 		Graphics.render();
 		Graphics.input.readInput();
-		Graphics.separator.setText("Password:");
-		Graphics.render();
+		
 		Graphics.input.on("submit",fuck2);
 	}
 	function fuck2(text){
-		Graphics.separator.setText("");
+		Graphics.write_divider("");
 		Graphics.input.removeListener("submit",fuck2);
 		text = Crypto.createHash("md5").update(text).digest("hex");
 		Graphics.input.censor = false;
