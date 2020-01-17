@@ -122,7 +122,7 @@ global.onSubmitMessage = function(message){
 			handled = true;
 
 	if (!handled)
-		sendMessage(text);
+		sendMessage(message);
 	
 	return false;
 }
@@ -159,3 +159,6 @@ Fs.readdirSync(chatjsfolder).forEach(function(file){
 		warningMessage("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
 	}
 });
+
+global.allTags = ["general", "offtopic", "admin", "debug", "any"];
+global.pmRooms = {}; //new

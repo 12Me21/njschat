@@ -1,13 +1,24 @@
 /// Default chat commands
+
 /// All files in the chatjs/ folder are executed
 /// ,so don't add your own commands to this file
 
 commands.push(new Command("tab",function(params){
 	var name = params.trim();
-	if (!setTabTag(name)) {
-		warningMessage("Unknown room. Rooms: "+Object.keys(Graphics.messagepanes).join(" "),"any");
+	if (allTags.indexOf(name) == -1) {
+		warningMessage("Unknown room. Rooms: "+allTags.join(" "),"any");
+	} else {
+		setTabTag(name);
 	}
 },"Switch tabs"));
+
+commands.push(new Command("room",function(params){
+	var name = params.trim() || currentTag();
+	localModuleMessage("Users in "+name+":");
+	if (pmRooms[name]){
+		localModuleMessage(pmRooms[name].users.map(x=>x.username).join(" "));
+	}
+},"Get room info"));
 
 commands.push(new Command("exit",function(){
 	process.exit(0);

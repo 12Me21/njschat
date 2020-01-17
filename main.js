@@ -7,7 +7,7 @@ require("./api.js");
 	
 	polyChat.onMessage = onMessage;
 
-	require("./chatcommands.js");
+	require("./commands.js");
 
 	var onBind = false;
 	var firstMessageListReceived = false, firstBind = true;
@@ -25,9 +25,14 @@ require("./api.js");
 			//Now reformat the user list
 			//refreshUserList(msg.users);
 			//refreshRoomList(msg.rooms, msg.users);
+			pmRooms = {};
+			for (i of msg.rooms)
+				pmRooms[i.name] = i;
+			allTags = ["general", "offtopic", "admin", "debug", "any"].concat(msg.rooms.map(x=>x.name));
 			Graphics.update_room_list(msg.rooms);
 			var x=Graphics.draw_userlist(msg.users);
 			lastUserList = msg.users;
+			
 			break;
 		case 'messageList':
 			//logger.log("Got messageList with " + msg.messages.length + " message(s)", LogSystem.TraceLevel);
