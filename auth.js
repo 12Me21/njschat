@@ -21,25 +21,27 @@ function get(options, body, callback){
 	req.end();
 }
 
-function login2session(username, passwordhash, callback){
-	get(
-		{
-			hostname: "smilebasicsource.com",
-			path: "/query/submit/login?session=x&small=1",
-			method: "POST",
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
+async function login2session(username, passwordhash){
+	return await new Promise(callback => {
+		get(
+			{
+				hostname: "smilebasicsource.com",
+				path: "/query/submit/login?session=x&small=1",
+				method: "POST",
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded',
+				},
 			},
-		},
-		"username="+username+"&password="+passwordhash,
-		function(data){
-			data=JSON.parse(data);
-			if(data.result)
-				callback(data.result);
-			else
-				callback(null, data.errors);
-		},
-	);
+			"username="+username+"&password="+passwordhash,
+			function(data){
+				data=JSON.parse(data);
+				if(data.result)
+					callback(data.result);
+				else
+					callback(null, data.errors);
+			},
+		);
+	});
 }
 
 function session2auth(session, callback){
@@ -62,7 +64,7 @@ function session2auth(session, callback){
 
 async function get_login(){
 	Graphics.render();
-	var submitUsername = function(prompt, censor){
+	var input = function(prompt, censor){
 		return new Promise(resolve=>{
 			Graphics.input.clearValue();
 			Graphics.write_divider(prompt);
@@ -71,13 +73,14 @@ async function get_login(){
 			function done(text){
 				Graphics.input.removeListener("submit",done);
 				Graphics.write_divider("");
+				Graphics.input.clearValue();
 				resolve(text);
 			}
 			Graphics.input.on("submit",done);
 		})
 	}
-	var username = await submitUsername("Username:");
-	var ligma = await submitUsername("P\x61ssword:",true);
+	var username = await input("Username:");
+	var ligma = await input("P\x61ssword:",true);
 	var balls = Crypto.createHash("md5").update(ligma).digest("hex");
 	return [username, balls];
 }
@@ -93,21 +96,16 @@ function save_session(session){
 }
 
 async function get_session(force, callback){
-	function after_got(session) {
-		if (session) {
-			save_session(session);
-			callback(session);
-		} else
-			callback(null);
-	}
 	async function after_load(session) {
-		if (session)
-			after_got(session);
-		else {
+		while (!session) {
 			[username, passwordhash] = await get_login();
-			if (username && passwordhash)
-				login2session(username, passwordhash, after_got);
+			session = await login2session(username, passwordhash);
+			if (session)
+				save_session(session);
+			else
+				Graphics.log("Failed to log in");
 		}
+		callback(session);
 	}
 	if (force)
 		after_load(null);

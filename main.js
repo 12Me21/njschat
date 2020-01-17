@@ -117,7 +117,8 @@ function onMessage(msg) {
 					onBind(firstBind, availableModules);
 				var request = { "type" : "request", "request" : "messageList" }; 
 				polyChat.sendMessage(JSON.stringify(request));
-				firstBind = false;
+			 firstBind = false;
+			 Graphics.switch_pane("any");			 
          }
       } else {
          if(msg.result === false) {
@@ -160,6 +161,7 @@ Auth(function(_auth, uid, session){
 	auth=_auth;
 	polyChat.proxyURL += "?session="+session;
 	polyChat.start(uid, auth, process.argv.length==3 ? PolyChat.ForceXHR : 0);
+	
 	Graphics.input.on("submit",function(text){
 		//print_tmp(text);
 		sendMessage(text);

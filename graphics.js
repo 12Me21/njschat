@@ -102,7 +102,7 @@ exports.update_room_list = function(rooms) {
 	});
 }
 
-exports.switch_pane("any");
+exports.switch_pane("debug");
 
 function draw_userlist(users){
 	var usernames=[];
@@ -191,7 +191,8 @@ exports.print = function(text, tag){
 		
 		if (tag != "any"){
 			print(text, tag);	
-			print("["+tag+"]"+text, "any");
+			if (tag != "debug")
+				print("["+tag+"]"+text, "any");
 		} else {
 			for (name in messagepanes) {
 				if (name != "debug")
@@ -205,5 +206,5 @@ exports.print = function(text, tag){
 }
 
 exports.log = function(a){
-	exports.print("{red-fg}"+blessed.escape(a)+"{/red-fg}");
+	exports.print("{red-fg}"+blessed.escape(a)+"{/red-fg}","debug");
 }
