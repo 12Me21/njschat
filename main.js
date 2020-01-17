@@ -1,80 +1,20 @@
-(async function(){
+require("./api.js");
 
+(async function(){
 	require("./patch.js");
-	
 	var Graphics = require("./graphics.js");
-	
-	var PolyChat = require("./polychat.js").PolyChat;
 	const Auth = require("./auth.js");
-	var polyChat = new PolyChat(Graphics);
+	
 	polyChat.onMessage = onMessage;
 
-	var auth, uid;
-	
-	var messageCallbacks = [];
+	require("./chatcommands.js");
+
 	var onBind = false;
 	var firstMessageListReceived = false, firstBind = true;
-	function getOrDefault(variable, defaultValue){
-		return typeof variable==='undefined' ? getOrDefault(defaultValue,false) : variable;
-	}
 	
-	function unescape_html(string){
-		return string
-			.replace(/&quot;/g,'"')
-			.replace(/&gt;/g,">")
-			.replace(/&lt;/g,"<")
-			.replace(/&apos;/g,"'")
-			.replace(/&amp;/g,"&");
-	}
-
 	function print_tmp(text, tag, color){
-		if (color){
-			text = "{"+color+"-fg}"+text+"{/"+color+"-fg}";
-		}
+		text = Graphics.colorize(text, color);
 		Graphics.print(text, tag);
-	}
-
-	function displayMessage(messageJSON){
-		var message = getOrDefault(messageJSON.message, "");
-		var type = getOrDefault(messageJSON.type, "");
-		var tag = getOrDefault(messageJSON.tag, "any");
-		var sender = getOrDefault(messageJSON.sender, {});
-		var uid = getOrDefault(sender.uid, -1);
-		var username = getOrDefault(sender.username, "");
-		var module = getOrDefault(messageJSON.module, "");
-		var messageID = getOrDefault(messageJSON.id, 0);
-		var safe = getOrDefault(messageJSON.safe, "unknown");
-
-		if(type === "system" || type === "warning") {
-			print_tmp(unescape_html(message), tag);
-		} else if(type === "module") {
-			print_tmp(unescape_html(message), tag, "gray");
-		} else if (type === "message") {
-			if (messageJSON.encoding == "draw")
-				message = "[drawing]";
-			
-			print_tmp(username + ": " + unescape_html(message), tag);
-		} else {
-			print_tmp("Tried to display an unknown message type: ");
-			return;
-		}
-		for(i = 0; i < messageCallbacks.length; i++) {
-			if(messageCallbacks[i])	{
-				if(messageCallbacks[i](dispMessage)) {
-					dispMessage = false;
-				}
-			}
-		}
-	}
-
-	function systemMessage(message) {
-		var messageJSON = { "type" : "system", "message" : message };
-		displayMessage(messageJSON);
-	}
-
-	function warningMessage(message) {
-		var messageJSON = { "type" : "warning", "message" : message };
-		displayMessage(messageJSON);
 	}
 
 	function onMessage(msg) {
@@ -136,38 +76,20 @@
 		}
 	}
 
-	function sendMessage(message,addCommand){
-		if (message.substr(0,5)=="/tab "){
-			var name = message.substr(5).trim().toLowerCase();
-			if (Graphics.messagepanes[name]) {
-				Graphics.switch_pane(name);
-			} else {
-				print_tmp("Unknown room. Rooms: "+Object.keys(Graphics.messagepanes).join(" "),"any");
-			}
-			return;
-		}
-		if(message.trim().length===0)
-			return;
-		var json={
-			'type':'message','text':message,'key':auth,'tag':Graphics.current_pane()
-		};
-		polyChat.sendMessage(JSON.stringify(json));
-	}
-
 	process.on('SIGINT', function() {
 		polyChat.close();
 		process.exit();
 	});
 
 
-	[uid, auth] = await Auth.getAuth();
-
-	polyChat.proxyURL += "?session="+session;
-	polyChat.start(uid, auth, process.argv.length==3 ? PolyChat.ForceXHR : 0);
-
+	[useruid, auth] = await Auth.getAuth();
+	
+	polyChat.session = session;
+	polyChat.start(useruid, auth, process.argv.length==3 ? PolyChat.ForceXHR : undefined);
+	
+	Graphics.input.readInput();
 	Graphics.input.on("submit",function(text){
-		//print_tmp(text);
-		sendMessage(text);
+		onSubmitMessage(text);
 		Graphics.input.readInput();
 		Graphics.input.clearValue();
 		Graphics.render();

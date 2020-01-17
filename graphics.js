@@ -4,9 +4,8 @@ var screen = blessed.screen({
 	smartCSR: true,
 	//useBCE: false,
 	background: "#FFFFFF",
+	title: "SBS Chat",
 });
-
-screen.title = "SmileBASIC Source Chat";
 
 var input = blessed.textbox({
 	parent: screen,
@@ -14,7 +13,7 @@ var input = blessed.textbox({
 	left: 0,
 	height: 2,
 	//inputOnFocus: true,
-	keys: ["C-c"],
+	keys: true,//["C-c"],
 	style: {
 		bg: "#EEEEFF"
 	}
@@ -87,12 +86,15 @@ exports.write_divider = function(text){
 }
 
 exports.switch_pane = function(name){
+	if (!messagepanes[name])
+		return false
 	messagepane.hide();
 	messagepane = messagepanes[name];
 	messagepane.show();
 	updatescrollbar();
 	exports.write_divider("Tab: "+name+"  (don't worry this is temporary)");
 	screen.render();
+	return true;
 }
 
 exports.update_room_list = function(rooms) {
@@ -141,28 +143,23 @@ input.key('up', function(ch, key) {
 	updatescrollbar();
 	screen.render();
 });
-
 input.key('down', function(ch, key) {
 	messagepane.scroll(1);
 	updatescrollbar();
 	screen.render();
 });
-
 input.key('pageup', function(ch, key) {
 	messagepane.scroll(-(messagepane.height-2));
 	updatescrollbar();
 	screen.render();
 });
-
 input.key('pagedown', function(ch, key) {
 	messagepane.scroll(messagepane.height-2);
 	updatescrollbar();
 	screen.render();
 });
 
-
 input.focus();
-input.readInput();
 
 exports.input = input;
 exports.render = function(){
@@ -184,6 +181,8 @@ function print(text, tag){
 }
 
 exports.print = function(text, tag){
+	//text=text.replace(/\n/g,"$\n");
+	//text=text.replace(/\n*$/,"");
 	if (tag) {
 		if (!messagepanes[tag]){
 			messagepanes[tag] = new_messagepane(tag);
@@ -207,4 +206,20 @@ exports.print = function(text, tag){
 
 exports.log = function(a){
 	exports.print("{red-fg}"+blessed.escape(a)+"{/red-fg}","debug");
+}
+
+//colorize + strip trailing newlines
+exports.colorize = function(text, color) {
+	if (color)
+		text = text.replace(/^([^]*?)\n*$/, "{"+color+"-fg}$1{/"+color+"-fg}");
+	return text;
+}
+
+exports.escape = blessed.escape //don't do this :(
+
+exports.clearScreen = function(){
+	for (name in messagepanes) {
+		if (name != "debug")
+			messagepanes[name].setText("");
+	}
 }

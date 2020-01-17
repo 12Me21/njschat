@@ -2,7 +2,13 @@
 
 const WebSocket = require("isomorphic-ws");
 const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-//const FormData = require("form-data"); no
+//const FormData = require("form-data");
+// Problems with FormData:
+// - isn't supported by nodejs XMLHttpRequest library
+// - form.submit(url) also doesn't seem to work
+// luckily FormData isn't required by polychat, but it would be nicer
+const window = global;
+
 const Base64 = {
 	encode: function(string) {
 		if (string !== null)
@@ -31,8 +37,6 @@ const Requester = {
 		};
 	}
 }
-
-window = global;
 
 /// Original Polychat
 
@@ -69,6 +73,7 @@ function PolyChat(logger)
 	this.onMessage = false;
 	this.onError = false;
 	this.onClose = false;
+	this.onOpen = false; //added
 
 	this.seenIDs = [];
 
@@ -153,7 +158,9 @@ function PolyChat(logger)
 			log("PolyChat will use websockets", LogSystem.DebugLevel);
 			myself.webSocket = new WebSocket(myself.webSocketURL);
 			myself.webSocket.onopen = function(event) 
-			{	
+			{
+				if (myself.onOpen)
+					myself.onOpen();
 				log("Websockets opened! Attempting bind", LogSystem.DebugLevel);
 				connected = true;
 				myself.sendMessage(JSON.stringify(connectMessage)); 
@@ -165,13 +172,13 @@ function PolyChat(logger)
 				else
 					doOnClose("Websocket closed");
 
-				log("Polychat websocket close event: " + JSON.stringify(event));
+				log("Polychat websocket close event: ");
 				connected = false;
 			};
 			myself.webSocket.onerror = function(error)
 			{
 				doOnError("Websocket error");// + JSON.stringify(error));
-				log("Polychat websocket error event: " + JSON.stringify(error), LogSystem.ErrorLevel);
+				log("Polychat websocket error event: ", LogSystem.ErrorLevel);
 			};
 			myself.webSocket.onmessage = function(event) 
 			{
@@ -182,6 +189,10 @@ function PolyChat(logger)
 		{
 			log("PolyChat will use XHR", LogSystem.DebugLevel);
 
+			if (!myself.session) {
+				throw "XHR Polychat requires session token";
+			}
+			
 			myself.xhr = function(jsonMessage, callback)
 			{
 				var xhr = new XMLHttpRequest();
@@ -195,14 +206,15 @@ function PolyChat(logger)
 				//the URL (which limits the size of messages)
 				if(window.FormData)
 				{
-					xhr.open("POST", myself.proxyURL);
+					log("formdata exists :)")
+					xhr.open("POST", myself.proxyURL + "?session=" + myself.session);
 					var data = new FormData();
 					data.append("data", jsonMessage);
 					xhr.send(data);
 				}
 				else
 				{
-					xhr.open("GET", myself.proxyURL + "&b64Data=" + Base64.encode(jsonMessage));
+					xhr.open("GET", myself.proxyURL + "?session=" + myself.session + "&b64Data=" + Base64.encode(jsonMessage));
 					xhr.send();
 				}
 			};
@@ -212,23 +224,25 @@ function PolyChat(logger)
 		{
 			log("Starting proxy. URL: " + this.proxyURL + ", ID: " + this.proxyID, LogSystem.DebugLevel);
 			sendProxyMessage("proxyStart", null, function(json)
-								  {
-									  if(json.result !== -1)
-									  {
-										  log("Proxy started successfully", LogSystem.DebugLevel);
-									  }
-									  else
-									  {
-										  log("Proxy ID already in use. Sharing session: " + myself.proxyID, LogSystem.InfoLevel);
-										  myself.requestUserList();
-										  myself.requestMessageList();
-									  }
-
-									  connected = true;
-									  sendProxyMessage("proxySend", JSON.stringify(connectMessage));
-									  setTimeout(retrieveProxyMessages, myself.retrieveInterval / 2);
-									  burstRetrieveProxyMessages(200,1);
-								  });
+							 {
+								 if(json.result !== -1)
+								 {
+									 if (myself.onOpen)
+										 myself.onOpen();
+									 log("Proxy started successfully", LogSystem.DebugLevel);
+								 }
+								 else
+								 {
+									 log("Proxy ID already in use. Sharing session: " + myself.proxyID, LogSystem.InfoLevel);
+									 myself.requestUserList();
+									 myself.requestMessageList();
+								 }
+								 
+								 connected = true;
+								 sendProxyMessage("proxySend", JSON.stringify(connectMessage));
+								 setTimeout(retrieveProxyMessages, myself.retrieveInterval / 2);
+								 burstRetrieveProxyMessages(200,1);
+							 });
 		}
 	};
 
@@ -292,7 +306,7 @@ function PolyChat(logger)
 		else
 		{
 			var jsonCompletion = Requester.respondToJSON(callback, doOnError);
-			myself.requester.sendGet(myself.proxyURL + "&b64Data=" + Base64.encode(jsonMessage), jsonCompletion);
+			myself.requester.sendGet(myself.proxyURL + "?session=" + myself.session + "&b64Data=" + Base64.encode(jsonMessage), jsonCompletion);
 		}
 	};
 

@@ -81,6 +81,7 @@ async function get_login(){
 				resolve(text);
 			}
 			Graphics.input.on("submit",done);
+			Graphics.input.censor = false;
 		})
 	}
 	var username = await input("Username:");
