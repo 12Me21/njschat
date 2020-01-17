@@ -1,6 +1,8 @@
 // these are functions that are used by a lot of things
 //  added to the global scope
 
+global.allTags = ["general", "offtopic", "admin", "debug", "any"];
+
 const Graphics = require("./graphics.js");
 const Fs = require("fs");
 
@@ -17,6 +19,9 @@ function print_tmp(text, tag, color){
 
 global.auth = null;
 global.useruid = null;
+global.username = null;
+global.pmRooms = {}; //new
+global.lastUserList = [];
 
 global.warningMessage = function(message) {
    var messageJSON = { "type" : "warning", "message" : message };
@@ -51,6 +56,10 @@ global.displayMessage = function(messageJSON){
 	var module = getOrDefault(messageJSON.module, "");
 	var messageID = getOrDefault(messageJSON.id, 0);
 	var safe = getOrDefault(messageJSON.safe, "unknown");
+
+	if(tag!=currentTag()) {
+		Graphics.setNotificationStateForTag(tag,true);
+	}
 	
 	if(type === "system") {
 		print_tmp(unescape_html(message), tag, "gray");
@@ -98,12 +107,13 @@ global.sendMessage = function(message,addCommand){
 	if(message.trim().length===0)
 		return;
 	var json={
-		'type':'message','text':message,'key':auth,'tag':Graphics.current_pane()
+		'type':'message','text':message,'key':auth,'tag':currentTag()
 	};
 	polyChat.sendMessage(JSON.stringify(json));
 }
 
 global.setTabTag = function(tag){
+	Graphics.setNotificationStateForTag(tag, false);
 	return Graphics.switch_pane(tag);
 }
 
@@ -136,7 +146,7 @@ global.Command = function (command, callback, description)
 	this.description = getOrDefault(description, "");
 }
 
-var Chatcommands = require("./chatcommands.js");
+var Chatcommands = require("./commands.js");
 
 global.commands = [];
 
@@ -159,6 +169,3 @@ Fs.readdirSync(chatjsfolder).forEach(function(file){
 		warningMessage("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
 	}
 });
-
-global.allTags = ["general", "offtopic", "admin", "debug", "any"];
-global.pmRooms = {}; //new

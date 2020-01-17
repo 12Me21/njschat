@@ -72,16 +72,16 @@ async function get_login(){
 		return new Promise(resolve=>{
 			Graphics.input.clearValue();
 			Graphics.write_divider(prompt);
-			Graphics.input.censor = !!censor;
 			Graphics.input.readInput();
+			Graphics.input.censor = !!censor;
 			function done(text){
 				Graphics.input.removeListener("submit",done);
 				Graphics.write_divider("");
 				Graphics.input.clearValue();
+				Graphics.input.censor = false;
 				resolve(text);
 			}
 			Graphics.input.on("submit",done);
-			Graphics.input.censor = false;
 		})
 	}
 	var username = await input("Username:");

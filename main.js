@@ -29,7 +29,7 @@ require("./api.js");
 			for (i of msg.rooms)
 				pmRooms[i.name] = i;
 			allTags = ["general", "offtopic", "admin", "debug", "any"].concat(msg.rooms.map(x=>x.name));
-			Graphics.update_room_list(msg.rooms);
+			Graphics.update_room_list(allTags);
 			var x=Graphics.draw_userlist(msg.users);
 			lastUserList = msg.users;
 			
@@ -65,7 +65,7 @@ require("./api.js");
 					var request = { "type" : "request", "request" : "messageList" }; 
 					polyChat.sendMessage(JSON.stringify(request));
 					firstBind = false;
-					Graphics.switch_pane("any");			 
+					setTabTag("offtopic");
 				}
 			} else {
 				if(msg.result === false) {

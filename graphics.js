@@ -29,9 +29,20 @@ var divider = blessed.box({
 	}
 })
 
+var roomlist = blessed.box({
+	parent:screen,
+	top: 0,
+	height: 1,
+	tags: true,
+	style: {
+		fg: "#FFFFFF",
+		bg: "#000080",
+	}
+})
+
 var userlist = blessed.box({
 	parent: screen,
-	top: 0,
+	top: roomlist.height,
 	height: 1,
 	style: {
 		fg: "#FFFFFF",
@@ -42,10 +53,10 @@ var userlist = blessed.box({
 function new_messagepane(name){
 	return blessed.box({
 		parent: screen,
-		top: userlist.height,
+		top: userlist.height+roomlist.height,
 		left: 0,
 		width: screen.width,
-		height: screen.height-input.height-divider.height-userlist.height,
+		height: screen.height-input.height-divider.height-userlist.height-roomlist.height,
 		keys: true,
 		alwaysScroll: true,
 		scrollable: true,
@@ -71,6 +82,8 @@ var messagepanes = {
 	debug: new_messagepane("debug")
 };
 
+var unreads = {};
+
 var messagepane = messagepanes.any;
 
 exports.messagepanes = messagepanes;
@@ -93,15 +106,24 @@ exports.switch_pane = function(name){
 	messagepane.show();
 	updatescrollbar();
 	exports.write_divider("Tab: "+name+"  (don't worry this is temporary)");
+	exports.update_room_list(allTags);
 	screen.render();
 	return true;
 }
 
 exports.update_room_list = function(rooms) {
+	roomlist.setContent(" "+rooms.map(x => {
+		var name = x;
+		if (x == messagepane.name){
+			name = "{bold}"+name+"{/bold}";
+		}
+		return name+(unreads[x]?"{#FF0000-fg}(!){/#FF0000-fg}":"   ")
+	}).join("| "));
 	rooms.forEach(function(x){
-		if (!messagepanes[x.name])
-			messagepanes[x.name] = new_messagepane(x.name);
+		if (!messagepanes[x])
+			messagepanes[x] = new_messagepane(x);
 	});
+	screen.render();
 }
 
 exports.switch_pane("debug");
@@ -222,4 +244,8 @@ exports.clearScreen = function(){
 		if (name != "debug")
 			messagepanes[name].setText("");
 	}
+}
+
+exports.setNotificationStateForTag = function(tag, state){
+	unreads[tag] = state;
 }
