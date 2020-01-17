@@ -60,37 +60,26 @@ function session2auth(session, callback){
 	);
 }
 
-function get_login(callback){
+async function get_login(){
 	Graphics.render();
-	var username;
-	Graphics.write_divider("Username:");
-	Graphics.input.on("submit",fuck1);
-	function fuck1(text){
-		username = text;
-		Graphics.input.removeListener("submit",fuck1);
-		Graphics.input.censor = true;
-		Graphics.input.clearValue();
-		Graphics.render();
-		Graphics.input.readInput();
-		
-		Graphics.input.on("submit",fuck2);
+	var submitUsername = function(prompt, censor){
+		return new Promise(resolve=>{
+			Graphics.input.clearValue();
+			Graphics.write_divider(prompt);
+			Graphics.input.censor = !!censor;
+			Graphics.input.readInput();
+			function done(text){
+				Graphics.input.removeListener("submit",done);
+				Graphics.write_divider("");
+				resolve(text);
+			}
+			Graphics.input.on("submit",done);
+		})
 	}
-	function fuck2(text){
-		Graphics.write_divider("");
-		Graphics.input.removeListener("submit",fuck2);
-		text = Crypto.createHash("md5").update(text).digest("hex");
-		Graphics.input.censor = false;
-		Graphics.input.clearValue();
-		Graphics.render();
-		Graphics.input.readInput();
-		callback(username, text);
-	}
-	/*		rl.question("username: ",username=>{
-			rl.question("password: ",password=>{
-			var passwordhash = 
-			callback(username, passwordhash);
-			});
-			});*/
+	var username = await submitUsername("Username:");
+	var ligma = await submitUsername("P\x61ssword:",true);
+	var balls = Crypto.createHash("md5").update(ligma).digest("hex");
+	return [username, balls];
 }
 
 function load_session(callback){
@@ -103,7 +92,7 @@ function save_session(session){
 	Fs.writeFile(SESSION_FILE, session, x=>x);
 }
 
-function get_session(force, callback){
+async function get_session(force, callback){
 	function after_got(session) {
 		if (session) {
 			save_session(session);
@@ -111,14 +100,14 @@ function get_session(force, callback){
 		} else
 			callback(null);
 	}
-	function after_load(session) {
+	async function after_load(session) {
 		if (session)
 			after_got(session);
-		else
-			get_login(function(username,passwordhash){
-				if (username && passwordhash)
-					login2session(username, passwordhash, after_got);
-			});
+		else {
+			[username, passwordhash] = await get_login();
+			if (username && passwordhash)
+				login2session(username, passwordhash, after_got);
+		}
 	}
 	if (force)
 		after_load(null);
