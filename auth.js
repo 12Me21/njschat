@@ -21,6 +21,7 @@ function get(options, body, callback){
 	req.end();
 }
 
+// username/password -> session token
 async function login2session(username, passwordhash){
 	return await new Promise(callback => {
 		get(
@@ -44,22 +45,25 @@ async function login2session(username, passwordhash){
 	});
 }
 
-function session2auth(session, callback){
-	get(
-		{
-			hostname: "smilebasicsource.com",
-			path: "/query/request/chatauth?session="+session,
-			method: "GET",
-		},
-		null,
-		function(data){
-			data=JSON.parse(data);
-			if(data.result)
-				callback(data.result, data.requester.uid, session);
-			else
-				callback(null, null, session, data.errors);
-		},
-	);
+// session token -> chat auth key
+async function session2auth(session){
+	return await new Promise(callback => {
+		get(
+			{
+				hostname: "smilebasicsource.com",
+				path: "/query/request/chatauth?session="+session,
+				method: "GET",
+			},
+			null,
+			function(data){
+				data=JSON.parse(data);
+				if(data.result)
+					callback([data.result, data.requester.uid]);
+				else
+					callback([null, null, data.errors]);
+			},
+		);
+	});
 }
 
 async function get_login(){
@@ -85,9 +89,11 @@ async function get_login(){
 	return [username, balls];
 }
 
-function load_session(callback){
-	Fs.readFile(SESSION_FILE, (err, data)=>{
-		callback(data);
+async function load_session(){
+	return new Promise(callback=>{
+		Fs.readFile(SESSION_FILE, (err, data)=>{
+			callback(data);
+		});
 	});
 }
 
@@ -95,39 +101,35 @@ function save_session(session){
 	Fs.writeFile(SESSION_FILE, session, x=>x);
 }
 
-async function get_session(force, callback){
-	async function after_load(session) {
-		while (!session) {
-			[username, passwordhash] = await get_login();
-			session = await login2session(username, passwordhash);
-			if (session)
-				save_session(session);
-			else
-				Graphics.log("Failed to log in");
-		}
-		callback(session);
+async function get_session(force){
+	if (!force)
+		session = await load_session();
+	while (!session) {
+		[username, passwordhash] = await get_login();
+		session = await login2session(username, passwordhash);
+		if (session)
+			save_session(session);
+		else
+			Graphics.log("Failed to log in");
 	}
-	if (force)
-		after_load(null);
-	else
-		load_session(after_load);
+	return session;
 }
 
-function get_auth(callback) {
-	function try_auth(force, callback, callback2){
-		get_session(force, function(session){
-			if (session)
-				session2auth(session, callback);
-			else
-				callback2();
-		});
+async function get_auth() {
+	var auth;
+	var session = await get_session();
+	if (session) {
+		[auth, uid] = await session2auth(session);
+		if (auth)
+			return [uid, auth, session];
 	}
-	try_auth(false,callback,function(){
-		try_auth(true,callback,function(){
-			//failed to get session
-		});
-	})
+	session = await get_session(true); //something went wrong, ask user to log in again
+	if (session) {
+		[auth, uid] = await session2auth(session);
+		if (auth)
+			return [uid, auth, session];
+	}
 }
 
-exports.Auth = get_auth
+exports.getAuth = get_auth
 //*/
