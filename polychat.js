@@ -1,7 +1,7 @@
 /// Nodejs compatibility
 
 const WebSocket = require("isomorphic-ws");
-const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+
 //const FormData = require("form-data");
 // Problems with FormData:
 // - isn't supported by nodejs XMLHttpRequest library
@@ -10,9 +10,9 @@ const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 const window = global;
 
 const Base64 = {
-	encode: function(string) {
+	encode: btoa,function(string) {
 		if (string !== null)
-			return Buffer.from(string.toString(), "binary").toString("base64");
+			return btoa(string);
 	},
 	decode: function(base64) {
 		if (string !== null)

@@ -58,9 +58,9 @@ async function session2auth(session){
 			function(data){
 				data=JSON.parse(data);
 				if(data.result)
-					callback([data.result, data.requester.uid]);
+					callback([data.result, data.requester.uid, data.requester.username]);
 				else
-					callback([null, null, data.errors]);
+					callback([null, null, null, data.errors]);
 			},
 		);
 	});
@@ -120,15 +120,15 @@ async function get_auth() {
 	var auth;
 	var session = await get_session();
 	if (session) {
-		[auth, uid] = await session2auth(session);
+		[auth, uid, username] = await session2auth(session);
 		if (auth)
-			return [uid, auth, session];
+			return [uid, auth, username, session];
 	}
 	session = await get_session(true); //something went wrong, ask user to log in again
 	if (session) {
-		[auth, uid] = await session2auth(session);
+		[auth, uid, username] = await session2auth(session);
 		if (auth)
-			return [uid, auth, session];
+			return [uid, auth, username, session];
 	}
 }
 

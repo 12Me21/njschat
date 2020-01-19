@@ -65,3 +65,21 @@ commands.push(new Command("help", function(params){
 
 	localModuleMessage(output);
 }, "Get help for local commands"));
+
+var pmSender = null;
+addMessageEvent(function(messageElement) {
+	if(messageElement.dataset.module == "pm") {
+		var uid = messageElement.dataset.user;
+		if(uid != useruid && !isIgnored(uid)) {
+			pmSender = uid;
+		}
+	}
+});
+commands.push(new Command("reply", function(params){
+	if(pmSender!==null) {
+		sendMessage("/pm #"+pmSender+params);
+	} else {
+		warningMessage("There was nothing to reply to.");
+	}
+	return true;
+}),"Reply to last pm");

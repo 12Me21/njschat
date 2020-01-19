@@ -1,15 +1,91 @@
+global.window = global; //maybe
+window.TERMINAL = true;
 // these are functions that are used by a lot of things
 //  added to the global scope
+
+global.firstMessageListReceived = false;
+
+global.btoa = function(string){
+	return Buffer.from(String(string), "binary").toString("base64");
+}
+
+global.startChatConnection = function(){};
+
+var XMLHttpRequest_old = require("xmlhttprequest").XMLHttpRequest;
+// Modify xmlhttprequest.open to act like it would in the browser
+// url protocol defaults to https
+// domain defaults to smilebasicsource.com
+global.XMLHttpRequest = function(){
+	XMLHttpRequest_old.call(this);
+	this.old_open = this.open;
+	this.open = function(method, url, async, user, password){
+		if(url.match(/^\/\//))
+			url = "https:" + url;
+		else if(!(url.match(/^\w+:\/\//)))
+			url = "https://smilebasicsource.com/" + url;
+		console.log("real url: "+url);
+		this.old_open(method, url, async, user, password);
+		this.setRequestHeader("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0");
+	};
+}
+//ok this library sucks and needs to be rewritten ugh
+global.genericXHRSimple = function(page, callback){
+	var xhr = new XMLHttpRequest();
+	xhr.open("POST", page);
+	xhr.onload = function(event){
+		try{
+			callback(xhr.responseText);
+		}catch(e){
+			console.log("Oops, XHR callback didn't work. Dumping exception");
+			console.log(e);
+		}
+	};
+	xhr.onerror = function(){
+		console.log("XHR FAILED");
+	}
+	xhr.send();
+}
+
+global.StorageUtilities = {
+	GetPHPSession: function(){
+		return polyChat.session; //bad
+	},
+}
+
+global.loadXMLDoc = function(theURL, callback, post){
+	post = typeof post !== 'undefined' ? post : false;
+	var xmlhttp = new XMLHttpRequest();
+
+	xmlhttp.onreadystatechange=function(){
+		if (xmlhttp.readyState==4 && xmlhttp.status==200){
+			callback(xmlhttp.responseText);
+		}
+	};
+	if(post){
+		//First, make sure the URL is even post worthy. If it's not,
+		//simply call our function again as get.
+		var parts = theURL.split("?");
+		if (parts.length != 2)
+			return loadXMLDoc(theURL, callback);
+		var params = parts[1];
+		xmlhttp.open("POST", parts[0], true);
+		xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+		xmlhttp.send(params);
+	}else{
+		xmlhttp.open("GET", theURL, true);
+		xmlhttp.send();
+	}
+}
 
 global.allTags = ["general", "offtopic", "admin", "debug", "any"];
 
 const Graphics = require("./graphics.js");
+console.log = Graphics.log;
 const Fs = require("fs");
 
 global.PolyChat = require("./polychat.js").PolyChat;
 global.polyChat = new PolyChat(Graphics);
 
-global.window = global; //maybe
 
 function print_tmp(text, tag, color){
 	text = text.replace(/\n*$/,"");
@@ -35,6 +111,7 @@ global.systemMessage = function(message) {
 
 function unescape_html(string){
 	return string
+		.replace(/<.*?>/g,"")
 		.replace(/&quot;/g,'"')
 		.replace(/&gt;/g,">")
 		.replace(/&lt;/g,"<")
@@ -57,10 +134,30 @@ global.displayMessage = function(messageJSON){
 	var messageID = getOrDefault(messageJSON.id, 0);
 	var safe = getOrDefault(messageJSON.safe, "unknown");
 
-	if(tag!=currentTag()) {
+	// make a fake html thing
+	var figcaption = {firstChild:{textContent:username}};
+	var messagePart = {textContent:message};
+	var dispMessage = {
+		dataset: {
+			safe: safe,
+			id: messageID,
+			subtype: messageJSON.subtype,
+			user: uid,
+		},
+		id: "message_"+messageID,
+		innerHTML: "",
+		querySelector: function(query){
+			if (query=="figcaption")
+				return figcaption;
+			if (query=="message-part")
+				return messagePart;
+		},
+	};
+
+	if(tag!=currentTag() && firstMessageListReceived) {
 		Graphics.setNotificationStateForTag(tag,true);
 	}
-	
+
 	if(type === "system") {
 		print_tmp(unescape_html(message), tag, "gray");
 	}else if(type ==="warning"){
@@ -70,20 +167,22 @@ global.displayMessage = function(messageJSON){
 	} else if (type === "message") {
 		if (messageJSON.encoding == "draw")
 			message = "[drawing]";
-		
-		print_tmp(username + ": " + unescape_html(message), tag);
+		Graphics.printMessage(sender, unescape_html(message), tag);
 	} else {
-		print_tmp("Tried to display an unknown message type: ");
+		console.log("Tried to display an unknown message type: ");
 		return;
 	}
+	
 	for(i = 0; i < messageCallbacks.length; i++) {
-		if(messageCallbacks[i])	{
+		if(messageCallbacks[i]){
 			if(messageCallbacks[i](dispMessage)) {
 				dispMessage = false;
 			}
 		}
 	}
 }
+
+global.isIgnored = ()=>false;
 
 global.localModuleMessage = function(message)
 {

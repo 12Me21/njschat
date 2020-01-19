@@ -41,8 +41,9 @@ require("./api.js");
 				var msgobject = msg.messages[i];
 				displayMessage(msgobject);
 			}
-			if(!firstMessageListReceived)
-				;//autoScroll(true);
+			//if(!firstMessageListReceived)
+				//Graphics.markAsRead();
+				//autoScroll(true);
 			firstMessageListReceived = true;
 			break;
 		case "response":
@@ -87,10 +88,12 @@ require("./api.js");
 	});
 
 
-	[useruid, auth] = await Auth.getAuth();
+	[useruid, auth, username] = await Auth.getAuth();
 	
 	polyChat.session = session;
 	polyChat.start(useruid, auth, process.argv.length==3 ? PolyChat.ForceXHR : undefined);
+
+	startChatConnection();
 	
 	Graphics.input.readInput();
 	Graphics.input.on("submit",function(text){

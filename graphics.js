@@ -1,3 +1,7 @@
+var Graphics = exports
+
+var Avatar = require("./avatar.js");
+
 var blessed = require("blessed");
 
 var screen = blessed.screen({
@@ -44,6 +48,7 @@ var userlist = blessed.box({
 	parent: screen,
 	top: roomlist.height,
 	height: 1,
+	tags: true,
 	style: {
 		fg: "#FFFFFF",
 		bg: "#000000",
@@ -71,6 +76,9 @@ function new_messagepane(name){
 		tags: true,
 		hidden: true,
 		name: name,
+		_: {
+			last:null
+		},
 	})
 }
 
@@ -128,12 +136,21 @@ exports.update_room_list = function(rooms) {
 
 exports.switch_pane("debug");
 
+// Get color of name in user list
+function userlistColor(user) {
+	if (user.banned)
+		return "#FF0000";
+	if (!user.active)
+		return "#808080";
+	return "#FFFFFF";
+}
+
 function draw_userlist(users){
 	var usernames=[];
-	users.forEach(function(user){
-		usernames.push(user.username);
-	});
-	userlist.setText(usernames.join(" | "));
+	for (var user of users) {
+		usernames.push(Graphics.colorize(user.username, userlistColor(user)));
+	}
+	userlist.setContent(usernames.join(" "));
 	screen.render();
 }
 
@@ -196,6 +213,7 @@ exports.is_near_bottom = function(){
 function print(text, tag){
 	var pane = messagepanes[tag] || messagepanes.debug;
 	var scroll = exports.is_near_bottom();
+	pane._.last = null;
 	pane.pushLine(text);
 	if (scroll)
 		pane.scrollTo(pane.getScrollHeight());
@@ -227,6 +245,7 @@ exports.print = function(text, tag){
 }
 
 exports.log = function(a){
+	a = String(a);
 	exports.print("{red-fg}"+blessed.escape(a)+"{/red-fg}","debug");
 }
 
@@ -249,3 +268,54 @@ exports.clearScreen = function(){
 exports.setNotificationStateForTag = function(tag, state){
 	unreads[tag] = state;
 }
+
+function indent(message, indent){
+	return indent+message.replace(/\n/g,"\n"+indent);
+}
+
+function ansi(fg,bg){
+	if (!fg){
+		return ""
+	}
+	if (!bg){
+		return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+"m";
+	}
+	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
+}
+
+function insertAvatar(pane, y, data) {
+	//console.log(data[0],data[1]);
+	var x = pane.getLine(y);
+	var text = ""
+	for (var i=0;i<4;i++){
+		text += ansi(data[i],data[i+4])+"▀";
+	}
+	text += "\x1B[m";
+	pane.setLine(y,text+x.substr(4))
+	text = ""
+	x = pane.getLine(y+1);
+	for (var i=8;i<12;i++){
+		text += ansi(data[i],data[i+4])+"▀";
+	}
+	text += "\x1B[m";
+	pane.setLine(y+1,text+x.substr(4))
+	screen.render();
+}
+
+exports.printMessage = function(user, message, tab){
+	var username = user.username;
+	var pane = messagepanes[tab]
+	var y = pane.getScrollHeight();
+	if (pane._.last == username) {
+		Graphics.print(indent(message,"     ","     "), tab);
+	} else {
+		Graphics.print("    \x1B[48;2;192;192;192m"+username+"\x1B[m:", tab);
+		Graphics.print(indent(message,"     ","     "), tab);
+		Avatar.get3x2(user.avatar,function(data){
+			insertAvatar(pane, y, data);
+		})
+	}
+	pane._.last = username;
+}
+
+//exports.printSystemMessage =f
