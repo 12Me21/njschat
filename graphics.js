@@ -1,6 +1,6 @@
 var Graphics = exports
 
-var Avatar = require("./avatar.js");
+//var Avatar = require("./avatar.js");
 
 var blessed = require("blessed");
 
@@ -273,17 +273,7 @@ function indent(message, indent){
 	return indent+message.replace(/\n/g,"\n"+indent);
 }
 
-function ansi(fg,bg){
-	if (!fg){
-		return ""
-	}
-	if (!bg){
-		return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+"m";
-	}
-	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
-}
-
-function insertAvatar(pane, y, data) {
+/*function insertAvatar(pane, y, data) {
 	//console.log(data[0],data[1]);
 	var x = pane.getLine(y);
 	var text = ""
@@ -300,20 +290,20 @@ function insertAvatar(pane, y, data) {
 	text += "\x1B[m";
 	pane.setLine(y+1,text+x.substr(4))
 	screen.render();
-}
+}*/
 
 exports.printMessage = function(user, message, tab){
 	var username = user.username;
 	var pane = messagepanes[tab]
 	var y = pane.getScrollHeight();
 	if (pane._.last == username) {
-		Graphics.print(indent(message,"     ","     "), tab);
+		Graphics.print(indent(message,"   ","   "), tab);
 	} else {
-		Graphics.print("    \x1B[48;2;192;192;192m"+username+"\x1B[m:", tab);
-		Graphics.print(indent(message,"     ","     "), tab);
-		Avatar.get3x2(user.avatar,function(data){
-			insertAvatar(pane, y, data);
-		})
+		Graphics.print("  \x1B[48;2;192;192;192m"+username+"\x1B[m:", tab);
+		Graphics.print(indent(message,"   ","   "), tab);
+		//Avatar.get3x2(user.avatar,function(data){
+	//		insertAvatar(pane, y, data);
+//		})
 	}
 	pane._.last = username;
 }
