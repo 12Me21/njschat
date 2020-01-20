@@ -11,24 +11,8 @@ global.btoa = function(string){
 
 global.startChatConnection = function(){};
 
-var XMLHttpRequest_old = require("xmlhttprequest").XMLHttpRequest;
-// Modify xmlhttprequest.open to act like it would in the browser
-// url protocol defaults to https
-// domain defaults to smilebasicsource.com
-global.XMLHttpRequest = function(){
-	XMLHttpRequest_old.call(this);
-	this.old_open = this.open;
-	this.open = function(method, url, async, user, password){
-		if(url.match(/^\/\//))
-			url = "https:" + url;
-		else if(!(url.match(/^\w+:\/\//)))
-			url = "https://smilebasicsource.com/" + url;
-		console.log("real url: "+url);
-		this.old_open(method, url, async, user, password);
-		this.setRequestHeader("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0");
-	};
-}
-//ok this library sucks and needs to be rewritten ugh
+global.XMLHttpRequest = require("./xhr.js").XMLHttpRequest("https://smilebasicsource.com");
+
 global.genericXHRSimple = function(page, callback){
 	var xhr = new XMLHttpRequest();
 	xhr.open("POST", page);
@@ -78,7 +62,6 @@ global.loadXMLDoc = function(theURL, callback, post){
 }
 
 global.allTags = ["general", "offtopic", "admin", "console", "any"];
-
 const Graphics = require("./graphics.js");
 console = Graphics.console;
 const Fs = require("fs");

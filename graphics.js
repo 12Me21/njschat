@@ -19,9 +19,9 @@ var input = blessed.textbox({
 	height: 2,
 	//inputOnFocus: true,
 	keys: true,//["C-c"],
-	style: {
+	/*style: {
 		bg: "#EEEEFF"
-	}
+	}*/
 })
 
 var divider = blessed.box({

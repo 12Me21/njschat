@@ -3,7 +3,6 @@
 	"repository": {"type": "git", "url": "https://github.io/12Me21/njschat.git"},
 	"dependencies": {
 		"isomorphic-ws": "*",
-		"xmlhttprequest": "*",
 		"blessed": "*",
 		"ws": "*"
 	},
