@@ -77,14 +77,14 @@ global.loadXMLDoc = function(theURL, callback, post){
 	}
 }
 
-global.allTags = ["general", "offtopic", "admin", "debug", "any"];
+global.allTags = ["general", "offtopic", "admin", "console", "any"];
 
 const Graphics = require("./graphics.js");
-console.log = Graphics.log;
+console = Graphics.console;
 const Fs = require("fs");
 
 global.PolyChat = require("./polychat.js").PolyChat;
-global.polyChat = new PolyChat(Graphics);
+global.polyChat = new PolyChat(console);
 
 
 function print_tmp(text, tag, color){

@@ -83,16 +83,12 @@ function new_messagepane(name){
 	})
 }
 
-var messagepanes = {
-	offtopic: new_messagepane("offtopic"),
-	general: new_messagepane("general"),
-	admin: new_messagepane("admin"),
-	any: new_messagepane("any"),
-	debug: new_messagepane("debug")
-};
+var messagepanes = {};
 
+allTags.forEach(name=>{
+	messagepanes[name] = new_messagepane(name);
+});
 var unreads = {};
-
 var messagepane = messagepanes.any;
 
 exports.messagepanes = messagepanes;
@@ -101,7 +97,6 @@ exports.current_pane = function(){
 	return messagepane.name;
 }
 
-exports.separator = divider; //oops
 exports.write_divider = function(text){
 	divider.setText(text);
 	screen.render();
@@ -135,7 +130,7 @@ exports.update_room_list = function(rooms) {
 	screen.render();
 }
 
-exports.switch_pane("debug");
+exports.switch_pane("console");
 
 // Get color of name in user list
 function userlistColor(user) {
@@ -188,6 +183,19 @@ input.key('down', function(ch, key) {
 	updatescrollbar();
 	screen.render();
 });
+function nextTag(offset){
+	var i = allTags.indexOf(currentTag());
+	if (i==-1)
+		return 0;
+	return (i+offset+allTags.length)%allTags.length;
+}
+input.key('left', function(ch, key) {
+	setTabTag(allTags[nextTag(-1)]);
+});
+input.key('right', function(ch, key) {
+	setTabTag(allTags[nextTag(1)]);
+});
+
 input.key('pageup', function(ch, key) {
 	messagepane.scroll(-(messagepane.height-2));
 	updatescrollbar();
@@ -212,7 +220,7 @@ exports.is_near_bottom = function(){
 }
 
 function print(text, tag){
-	var pane = messagepanes[tag] || messagepanes.debug;
+	var pane = messagepanes[tag] || messagepanes.console
 	var scroll = exports.is_near_bottom();
 	pane._.last = null;
 	pane.pushLine(text);
@@ -231,23 +239,34 @@ exports.print = function(text, tag){
 		
 		if (tag != "any"){
 			print(text, tag);	
-			if (tag != "debug")
+			if (tag != "console")
 				print("["+tag+"]"+text, "any");
 		} else {
 			for (name in messagepanes) {
-				if (name != "debug")
+				if (name != "console")
 					print(text, name);
 			}
 		}
 	} else {
-		print(text, "debug");
+		print(text, "console");
 	}
 	screen.render();
 }
 
-exports.log = function(a){
-	a = String(a);
-	exports.print("{red-fg}"+blessed.escape(a)+"{/red-fg}","debug");
+exports.console = {
+	log: function(...a){
+		a = a.join(" ");
+		exports.print(blessed.escape(a),"console");
+	},
+	ln: Math.log,
+	warn: function(...a){
+		a = a.join(" ");
+		exports.print(Graphics.colorize(a,"#008000"),"console");
+	},
+	error: function(...a){
+		a = a.join(" ");
+		exports.print(Graphics.colorize(a,"#FF0000"),"console");
+	},
 }
 
 //colorize + strip trailing newlines
@@ -261,7 +280,7 @@ exports.escape = blessed.escape //don't do this :(
 
 exports.clearScreen = function(){
 	for (name in messagepanes) {
-		if (name != "debug")
+		if (name != "console")
 			messagepanes[name].setText("");
 	}
 }
