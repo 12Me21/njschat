@@ -154,7 +154,7 @@ global.displayMessage = function(messageJSON){
 		},
 	};
 
-	if(tag!=currentTag() && firstMessageListReceived) {
+	if(tag != currentTag() && firstMessageListReceived) {
 		Graphics.setNotificationStateForTag(tag,true);
 	}
 
@@ -163,6 +163,7 @@ global.displayMessage = function(messageJSON){
 	}else if(type ==="warning"){
 		print_tmp(unescape_html(message), tag, "red");
 	} else if(type === "module") {
+		dispMessage.innerHTML = message;
 		print_tmp(unescape_html(message), tag, "gray");
 	} else if (type === "message") {
 		if (messageJSON.encoding == "draw")

@@ -10,7 +10,7 @@ require("./api.js");
 	require("./commands.js");
 
 	var onBind = false;
-	var firstMessageListReceived = false, firstBind = true;
+	var firstBind = true;
 	
 	function print_tmp(text, tag, color){
 		text = Graphics.colorize(text, color);

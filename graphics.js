@@ -1,3 +1,4 @@
+
 var Graphics = exports
 
 //var Avatar = require("./avatar.js");
@@ -39,7 +40,7 @@ var roomlist = blessed.box({
 	height: 1,
 	tags: true,
 	style: {
-		fg: "#FFFFFF",
+		fg: "#C0C0C0",
 		bg: "#000080",
 	}
 })
@@ -113,20 +114,20 @@ exports.switch_pane = function(name){
 	messagepane = messagepanes[name];
 	messagepane.show();
 	updatescrollbar();
-	exports.write_divider("Tab: "+name+"  (don't worry this is temporary)");
 	exports.update_room_list(allTags);
 	screen.render();
 	return true;
 }
 
 exports.update_room_list = function(rooms) {
+	rooms = rooms || allTags;
 	roomlist.setContent(" "+rooms.map(x => {
 		var name = x;
 		if (x == messagepane.name){
-			name = "{bold}"+name+"{/bold}";
+			name = "{#FFFFFF-fg}{bold}"+name+"{/bold}{/#FFFFFF-fg}";
 		}
-		return name+(unreads[x]?"{#FF0000-fg}(!){/#FF0000-fg}":"   ")
-	}).join("| "));
+		return name+(unreads[x]?ansi([255,255,255],[255,0,192])+"!"+"\x1B[m":" ")
+	}).join(" "));
 	rooms.forEach(function(x){
 		if (!messagepanes[x])
 			messagepanes[x] = new_messagepane(x);
@@ -267,6 +268,7 @@ exports.clearScreen = function(){
 
 exports.setNotificationStateForTag = function(tag, state){
 	unreads[tag] = state;
+	exports.update_room_list();
 }
 
 function indent(message, indent){
@@ -290,7 +292,16 @@ function indent(message, indent){
 	text += "\x1B[m";
 	pane.setLine(y+1,text+x.substr(4))
 	screen.render();
-}*/
+	}*/
+
+function ansi(fg,bg){
+	if (!bg)
+		return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+"m";
+	if (!fg)
+		return "\x1B[48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
+	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
+}
+
 
 exports.printMessage = function(user, message, tab){
 	var username = user.username;
