@@ -84,6 +84,7 @@ commands.push(new Command("reply", function(params){
 	return true;
 }),"Reply to last pm");
 
+// TODO: try/catch on chatjs and other dangerous code !!!
 function getAvatarFile(name, callback){
 	var user = lastUserList.find(x=>x.username==name);
 	if (user)
@@ -103,8 +104,10 @@ commands.push(new Command("avatar",function(params){
 	getAvatarFile(params.trim(), function(filename){
 		if (filename) {
 			localModuleMessage(params.trim()+" has avatar https://smilebasicsource.com/user_uploads/avatars/"+filename)
+			di("http://smilebasicsource.com/user_uploads/avatars/"+filename);
 		} else {
 			warningMessage("User not found");
 		}
+		
 	});
 },"Get user avatar"));

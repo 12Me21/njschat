@@ -213,9 +213,11 @@ exports.XMLHttpRequest = function(defaultHost){
 
 
 			var url = new URL(settings.url, defaultHost);
+			console.log(url.protocol);
 			var ssl = url.protocol == "https:";
 			var host = url.hostname;
-			if (protocol!="https:" && protocol!="http:")
+
+			if (url.protocol!="https:" && protocol!="http:")
 				throw new Error("Protocol not supported.");
 			
 			// Default to port 80. If accessing localhost on another port be sure

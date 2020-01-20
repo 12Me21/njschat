@@ -12,6 +12,17 @@ var screen = blessed.screen({
 	title: "SBS Chat",
 });
 
+var minDim = Math.min(screen.width, screen.height*2);
+
+var imageViewer = blessed.box({
+	parent: screen,
+	width: minDim,
+	height: minDim/2,
+	right: 0,
+	hidden: true,
+	tags: true,
+});
+
 var input = blessed.textbox({
 	parent: screen,
 	bottom: 0,
@@ -103,6 +114,7 @@ exports.write_divider = function(text){
 }
 
 exports.switch_pane = function(name){
+	imageViewer.hide();
 	if (!messagepanes[name])
 		return false
 	messagepane.hide();
@@ -201,6 +213,13 @@ input.key('pageup', function(ch, key) {
 	updatescrollbar();
 	screen.render();
 });
+
+imageViewer.key('q', function(ch, key) {
+	imageViewer.hidden = true;
+	screen.render();
+	input.focus();
+});
+
 input.key('pagedown', function(ch, key) {
 	messagepane.scroll(messagepane.height-2);
 	updatescrollbar();
@@ -339,3 +358,28 @@ exports.printMessage = function(user, message, tab){
 }
 
 //exports.printSystemMessage =f
+
+var Avatar = require("./avatar.js");
+function displayImage(url) {
+	Avatar.getImage(url, minDim, minDim, function(data, width, height){
+		console.log("OMG");
+		var str="";
+		var n=0;
+		for (var j=0;j<height;j+=2){
+			if (j)
+				str+="\n";
+			for (var i=0;i<width;i++){
+				str+=ansi(data[n],data[n+width])+"▀";
+				n++;
+			}
+			n+=width;
+			str +="\x1B[m";
+		}
+		imageViewer.setContent(str);
+		imageViewer.show();
+		imageViewer.setIndex(100);
+		screen.render();
+	});
+}
+
+global.di = displayImage;
