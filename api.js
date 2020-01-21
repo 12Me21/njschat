@@ -92,7 +92,7 @@ global.systemMessage = function(message) {
 	displayMessage(messageJSON);
 }
 
-function unescape_html(string){
+function stripHTML(string){
 	return string
 		.replace(/<.*?>/g,"")
 		.replace(/&quot;/g,'"')
@@ -142,16 +142,17 @@ global.displayMessage = function(messageJSON){
 	}
 
 	if(type === "system") {
-		print_tmp(unescape_html(message), tag, "gray");
+		dispMessage.innerHTML = message;
+		Graphics.printSystemMessage(stripHTML(message), tag);
 	}else if(type ==="warning"){
-		print_tmp(unescape_html(message), tag, "red");
+		Graphics.printWarningMessage(stripHTML(message), tag);
 	} else if(type === "module") {
 		dispMessage.innerHTML = message;
-		print_tmp(unescape_html(message), tag, "gray");
+		Graphics.printModuleMessage(sender, stripHTML(message), tag);
 	} else if (type === "message") {
 		if (messageJSON.encoding == "draw")
 			message = "[drawing]";
-		Graphics.printMessage(sender, unescape_html(message), tag);
+		Graphics.printMessage(sender, stripHTML(message), tag);
 	} else {
 		console.log("Tried to display an unknown message type: ");
 		return;

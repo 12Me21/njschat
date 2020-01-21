@@ -2,7 +2,6 @@
 // text escape/colorize function
 // fg and bg are optional
 function C(text,fg,bg){
-	text = text.replace(/{/g,"{open}");
 	text = text.replace(/\x1B/g,"");
 	if (!fg && !bg)
 		return text;
@@ -85,6 +84,23 @@ module.exports = {
 	username: function(user){
 		return C(user.username, undefined, [208,208,208]);
 	},
+	
+	// format module message
+	moduleMessage: function(message){
+		return C(message, [64,64,64]);
+	},
+	// format system message
+	systemMessage: function(message){
+		return C(message, [64,64,64]);
+	},
+	// format warning
+	warningMessage: function(message){
+		return C(message, [128,0,0]);
+	},
+	messageLabel: function(tab){
+		return C("["+tab+"]");
+	},
+	// shortcuts
 	keys: {
 		exit: "C-c",
 		room: ["left", "right"],

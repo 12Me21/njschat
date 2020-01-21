@@ -12,7 +12,11 @@ function getAvatar(url, width, height, callback) {
 		var pxsize = buffer.length/(width*height);
 		var out=[];
 		for(var i=0;i<buffer.length;i+=pxsize){
-			out.push([buffer[i],buffer[i+1],buffer[i+2]]);
+			if (pxsize==4 && !buffer[i+3])
+				out.push([255,255,255]);
+			else
+				out.push([buffer[i],buffer[i+1],buffer[i+2]]);
+			
 		}
 		callback(out,width,height);
 	}

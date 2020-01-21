@@ -26,7 +26,9 @@ var imageViewer = blessed.box({
 	height: minDim/2,
 	right: 0,
 	hidden: true,
-	tags: true,
+	style: {
+		bg: "#FFFFFF",
+	},
 });
 
 var input = blessed.textbox({
@@ -49,7 +51,7 @@ var roomlist = blessed.box({
 	parent:chatpane,
 	top: 0,
 	height: 1,
-	tags: true,
+	//tags: true,
 	style: S.roomlist,
 })
 
@@ -57,7 +59,7 @@ var userlist = blessed.box({
 	parent: chatpane,
 	top: roomlist.height,
 	height: 1,
-	tags: true,
+	//tags: true,
 	style: S.userlist,
 })
 
@@ -67,7 +69,6 @@ function new_messagepane(name){
 		parent: chatpane,
 		top: userlist.height+roomlist.height,
 		left: 0,
-		//width: screen.width,
 		height: chatpane.height-input.height-divider.height-userlist.height-roomlist.height,
 		keys: true,
 		alwaysScroll: true,
@@ -77,7 +78,6 @@ function new_messagepane(name){
 			track: {bg: scrollbarColors.bg},
 		},
 		style: S.messagepane.style(),
-		tags: true,
 		hidden: true,
 		name: name,
 		_: { // user data
@@ -224,8 +224,6 @@ function print(text, tag){
 }
 
 exports.print = function(text, tag){
-	//text=text.replace(/\n/g,"$\n");
-	//text=text.replace(/\n*$/,"");
 	if (tag) {
 		if (!messagepanes[tag]){
 			messagepanes[tag] = new_messagepane(tag);
@@ -234,7 +232,7 @@ exports.print = function(text, tag){
 		if (tag != "any"){
 			print(text, tag);	
 			if (tag != "console")
-				print("["+tag+"]"+text, "any");
+				print(S.messageLabel(tag)+text, "any");
 		} else {
 			for (name in messagepanes) {
 				if (name != "console")
@@ -247,30 +245,33 @@ exports.print = function(text, tag){
 	screen.render();
 }
 
+function C(text,fg,bg){
+	text = text.replace(/\x1B/g,"");
+	if (!fg && !bg)
+		return text;
+	if (!bg) {
+		return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+"m"+text+"\x1B[m";
+	}
+	if (!fg)
+		return "\x1B[48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m"+text+"\x1B[m";
+	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m"+text+"\x1B[m";
+}
+
 exports.console = {
 	log: function(...a){
 		a = a.join(" ");
-		exports.print(blessed.escape(a),"console");
+		exports.print(C(a),"console");
 	},
 	ln: Math.log,
 	warn: function(...a){
 		a = a.join(" ");
-		exports.print(Graphics.colorize(a,"#008000"),"console");
+		exports.print(C(a,"#008000"),"console");
 	},
 	error: function(...a){
 		a = a.join(" ");
-		exports.print(Graphics.colorize(a,"#FF0000"),"console");
+		exports.print(C(a,"#FF0000"),"console");
 	},
 }
-
-//colorize + strip trailing newlines
-exports.colorize = function(text, color) {
-	if (color)
-		text = text.replace(/^([^]*?)\n*$/, "{"+color+"-fg}$1{/"+color+"-fg}");
-	return text;
-}
-
-exports.escape = blessed.escape //don't do this :(
 
 exports.clearScreen = function(){
 	for (name in messagepanes) {
@@ -308,6 +309,7 @@ function indent(message, indent){
 	screen.render();
 	}*/
 
+// Display normal message
 exports.printMessage = function(user, message, tab){
 	var username = user.username;
 	var pane = messagepanes[tab]
@@ -324,8 +326,16 @@ exports.printMessage = function(user, message, tab){
 	}
 	pane._.last = username;
 }
+exports.printModuleMessage = function(user, message, tab){
+	Graphics.print(S.moduleMessage(message), tab);
+}
 
-//exports.printSystemMessage =f
+exports.printSystemMessage = function(message, tab){
+	Graphics.print(S.systemMessage(message), tab);
+}
+exports.printWarningMessage = function(message, tab){
+	Graphics.print(S.warningMessage(message), tab);
+}
 
 function ansi(fg,bg){
 	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
