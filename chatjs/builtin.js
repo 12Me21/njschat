@@ -111,3 +111,7 @@ commands.push(new Command("avatar",function(params){
 		
 	});
 },"Get user avatar"));
+
+commands.push(new Command("di",function(params){
+	di(params.trim());
+},"display image"));

@@ -1,3 +1,6 @@
+//TODO: resize events
+
+var S = require("./settings.js");
 
 var Graphics = exports
 
@@ -8,8 +11,11 @@ var blessed = require("blessed");
 var screen = blessed.screen({
 	smartCSR: true,
 	//useBCE: false,
-	background: "#FFFFFF",
 	title: "SBS Chat",
+});
+
+var chatpane = blessed.box({
+	parent: screen,
 });
 
 var minDim = Math.min(screen.width, screen.height*2);
@@ -24,71 +30,57 @@ var imageViewer = blessed.box({
 });
 
 var input = blessed.textbox({
-	parent: screen,
+	parent: chatpane,
 	bottom: 0,
 	left: 0,
 	height: 2,
-	//inputOnFocus: true,
-	keys: true,//["C-c"],
-	/*style: {
-		bg: "#EEEEFF"
-	}*/
+	keys: true,
+	style: S.input,
 })
 
 var divider = blessed.box({
-	parent: screen,
+	parent: chatpane,
 	bottom: input.height,
 	height: 1,
-	style: {
-		fg: "#FFFFFF",
-		bg: "#00C8B4",
-	}
+	style: S.divider(),
 })
 
 var roomlist = blessed.box({
-	parent:screen,
+	parent:chatpane,
 	top: 0,
 	height: 1,
 	tags: true,
-	style: {
-		fg: "#C0C0C0",
-		bg: "#000080",
-	}
+	style: S.roomlist,
 })
 
 var userlist = blessed.box({
-	parent: screen,
+	parent: chatpane,
 	top: roomlist.height,
 	height: 1,
 	tags: true,
-	style: {
-		fg: "#FFFFFF",
-		bg: "#000000",
-	}
+	style: S.userlist,
 })
 
 function new_messagepane(name){
+	var scrollbarColors = S.messagepane.scrollbar(name, false);
 	return blessed.box({
-		parent: screen,
+		parent: chatpane,
 		top: userlist.height+roomlist.height,
 		left: 0,
-		width: screen.width,
-		height: screen.height-input.height-divider.height-userlist.height-roomlist.height,
+		//width: screen.width,
+		height: chatpane.height-input.height-divider.height-userlist.height-roomlist.height,
 		keys: true,
 		alwaysScroll: true,
 		scrollable: true,
 		scrollbar: {
-			style: {
-				bg: "#FF0000"
-			},
-			track: {
-				bg: "#DDD"
-			}
+			style: {bg: scrollbarColors.fg},
+			track: {bg: scrollbarColors.bg},
 		},
+		style: S.messagepane.style(),
 		tags: true,
 		hidden: true,
 		name: name,
-		_: {
+		_: { // user data
 			last:null
 		},
 	})
@@ -114,7 +106,6 @@ exports.write_divider = function(text){
 }
 
 exports.switch_pane = function(name){
-	imageViewer.hide();
 	if (!messagepanes[name])
 		return false
 	messagepane.hide();
@@ -129,43 +120,32 @@ exports.switch_pane = function(name){
 exports.update_room_list = function(rooms) {
 	rooms = rooms || allTags;
 	roomlist.setContent(" "+rooms.map(x => {
-		var name = x;
-		if (x == messagepane.name){
-			name = "{#FFFFFF-fg}{bold}"+name+"{/bold}{/#FFFFFF-fg}";
-		}
-		return name+(unreads[x]?ansi([255,255,255],[255,0,192])+"!"+"\x1B[m":" ")
+		return S.room_name(x, messagepane.name==x, unreads[x] && x!="any");
 	}).join(" "));
 	rooms.forEach(function(x){
 		if (!messagepanes[x])
 			messagepanes[x] = new_messagepane(x);
 	});
+	// we never remove old messagepanes ( closed pm rooms)
+	// maybe it should do something ...
 	screen.render();
 }
 
 exports.switch_pane("console");
 
-// Get color of name in user list
-function userlistColor(user) {
-	if (user.banned)
-		return "#FF0000";
-	if (!user.active)
-		return "#808080";
-	return "#FFFFFF";
-}
-
 function draw_userlist(users){
 	var usernames=[];
 	for (var user of users) {
-		usernames.push(Graphics.colorize(user.username, userlistColor(user)));
+		usernames.push(S.userlist_name(user));
 	}
 	userlist.setContent(usernames.join(" "));
 	screen.render();
 }
 
-input.key('C-c', function(ch, key) {
+input.key(S.keys.exit, function(ch, key) {
 	return process.exit(0);
 });
-screen.key('C-c', function(ch, key) {
+screen.key(S.keys.exit, function(ch, key) {
 	return process.exit(0);
 });
 
@@ -175,22 +155,23 @@ screen.key('C-c', function(ch, key) {
 
 function updatescrollbar(pane){
 	if (!pane || pane == messagepane) {
-		if (messagepane.getScrollPerc()==100) {
-			messagepane.scrollbar.style.bg = "#0F0";
-			messagepane.scrollbar.track.bg = "#AAFFAA"
-		} else {
-			messagepane.scrollbar.style.bg = "#F00";
-			messagepane.scrollbar.track.bg = "#FAA";
-		}
+		var s = S.messagepane.scrollbar(messagepane.name, messagepane.getScrollPerc()==100)
+		messagepane.scrollbar.style.bg = s.fg;
+		messagepane.scrollbar.track.bg = s.bg;
 	}
 }
-
-input.key('up', function(ch, key) {
+	
+input.key(S.keys.closeImage, function(ch, key) {
+	imageViewer.hide();
+	chatpane.width = screen.width;
+	screen.render();
+});
+input.key(S.keys.scroll[0], function(ch, key) {
 	messagepane.scroll(-1);
 	updatescrollbar();
 	screen.render();
 });
-input.key('down', function(ch, key) {
+input.key(S.keys.scroll[1], function(ch, key) {
 	messagepane.scroll(1);
 	updatescrollbar();
 	screen.render();
@@ -201,26 +182,20 @@ function nextTag(offset){
 		return 0;
 	return (i+offset+allTags.length)%allTags.length;
 }
-input.key('left', function(ch, key) {
+input.key(S.keys.room[0], function(ch, key) {
 	setTabTag(allTags[nextTag(-1)]);
 });
-input.key('right', function(ch, key) {
+input.key(S.keys.room[1], function(ch, key) {
 	setTabTag(allTags[nextTag(1)]);
 });
 
-input.key('pageup', function(ch, key) {
+input.key(S.keys.scrollPage[0], function(ch, key) {
 	messagepane.scroll(-(messagepane.height-2));
 	updatescrollbar();
 	screen.render();
 });
 
-imageViewer.key('q', function(ch, key) {
-	imageViewer.hidden = true;
-	screen.render();
-	input.focus();
-});
-
-input.key('pagedown', function(ch, key) {
+input.key(S.keys.scrollPage[1], function(ch, key) {
 	messagepane.scroll(messagepane.height-2);
 	updatescrollbar();
 	screen.render();
@@ -302,6 +277,7 @@ exports.clearScreen = function(){
 		if (name != "console")
 			messagepanes[name].setText("");
 	}
+	screen.render();
 }
 
 exports.setNotificationStateForTag = function(tag, state){
@@ -332,15 +308,6 @@ function indent(message, indent){
 	screen.render();
 	}*/
 
-function ansi(fg,bg){
-	if (!bg)
-		return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+"m";
-	if (!fg)
-		return "\x1B[48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
-	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
-}
-
-
 exports.printMessage = function(user, message, tab){
 	var username = user.username;
 	var pane = messagepanes[tab]
@@ -348,7 +315,8 @@ exports.printMessage = function(user, message, tab){
 	if (pane._.last == username) {
 		Graphics.print(indent(message,"   ","   "), tab);
 	} else {
-		Graphics.print("  \x1B[48;2;192;192;192m"+username+"\x1B[m:", tab);
+		
+		Graphics.print("  "+S.username(user), tab);
 		Graphics.print(indent(message,"   ","   "), tab);
 		//Avatar.get3x2(user.avatar,function(data){
 	//		insertAvatar(pane, y, data);
@@ -359,10 +327,12 @@ exports.printMessage = function(user, message, tab){
 
 //exports.printSystemMessage =f
 
+function ansi(fg,bg){
+	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
+}
 var Avatar = require("./avatar.js");
 function displayImage(url) {
 	Avatar.getImage(url, minDim, minDim, function(data, width, height){
-		console.log("OMG");
 		var str="";
 		var n=0;
 		for (var j=0;j<height;j+=2){
@@ -377,6 +347,7 @@ function displayImage(url) {
 		}
 		imageViewer.setContent(str);
 		imageViewer.show();
+		chatpane.width = screen.width-imageViewer.width;
 		imageViewer.setIndex(100);
 		screen.render();
 	});

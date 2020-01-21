@@ -23,7 +23,12 @@ function checkCommands(input)
 				params = "";
 
 			//console.log(commands[i]);
-			var consumed = getOrDefault(commands[i].callback(params), true);
+			try{
+				var consumed = getOrDefault(commands[i].callback(params), true);
+			}catch(e){
+				warningMessage("Error during command: /"+commands[i].command+"\n"+e.stack);
+				consumed = true;
+			}
 			//commandList.push(input);
 			return consumed;
 		}

@@ -1,12 +1,14 @@
 const Http = require("http");
+const Https = require("https");
 const Concat = require("concat-stream");
 const Sharp = require("sharp");
-const Blessed = require("blessed");
+//const Blessed = require("blessed");
 
 function getAvatar(url, width, height, callback) {
-	const resize = Sharp().resize(width,height,{fit:"cover",kernel:"nearest"}).raw();
+	const resize = Sharp().resize(width,height,{fit:"cover"}).raw();
 	function gotBuffer(buffer){
-		//console.log(buffer);
+		if(!buffer.length)
+			return;
 		var pxsize = buffer.length/(width*height);
 		var out=[];
 		for(var i=0;i<buffer.length;i+=pxsize){
@@ -14,9 +16,16 @@ function getAvatar(url, width, height, callback) {
 		}
 		callback(out,width,height);
 	}
-	Http.get(url, function(response){
-		response.pipe(resize).pipe(Concat(gotBuffer));
-	});
+
+	try{
+		Http.get(url, function(response){
+			x = response.pipe(resize).on("error",function(e){
+				console.error(e);
+			}).pipe(Concat(gotBuffer));
+		});
+	}catch(e){
+		console.error("request failed in getavatar: "+url);
+	}
 }
 
 exports.getImage = getAvatar;
@@ -43,6 +52,8 @@ var box = Blessed.box({
 
 var min = Math.min(box.width, box.height*2);*/
 
+var min=70;
+
 //getAvatar(process.argv[2],min,min,print);
 
 function print(data, width, height){
@@ -61,8 +72,6 @@ function print(data, width, height){
 		str +="\x1B[m";
 	}
 	console.log(str);
-	box.setContent(str);
-	screen.render();
 }
 //*/
 

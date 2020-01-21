@@ -1,19 +1,9 @@
 colors = require("blessed/lib/colors");
 
-colors.ccolors = (function() {
-	var _cols = colors.vcolors.slice();
-	var cols = colors.colors.slice();
-   var out;
-	
-	colors.vcolors = colors.vcolors.slice(0, 8);
-	colors.colors = colors.colors.slice(0, 8);
-	
-	out = cols.map(colors.match);
-	colors._cache={};
-	
-	colors.colors = cols;
-	colors.vcolors = _cols;
-	colors.ccolors = out;
-	
-	return out;
-})();
+colors._cache = {};
+
+//remove first 16 colors from matching
+for(var i=0;i<16;i++){
+	colors.colors[i] = "#000000";
+	colors.vcolors[i] = [0,0,0];
+}

@@ -8,6 +8,7 @@
 		"blessed": "*",
 		"concat-stream": "^2.0.0",
 		"isomorphic-ws": "*",
+		"request": "^2.88.0",
 		"sharp": "^0.24.0",
 		"ws": "*"
 	},

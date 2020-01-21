@@ -210,9 +210,14 @@ global.onSubmitMessage = function(message){
 	
 	var eventParam = {value: message};
 	
-	for(var i = 0; i < onSubmitMessage.events.length; i++)
-		if(onSubmitMessage.events[i](eventParam))
-			handled = true;
+	for(var i = 0; i < onSubmitMessage.events.length; i++){
+		try{
+			if(onSubmitMessage.events[i](eventParam))
+				handled = true;
+		}catch(e){
+			warningMessage("Error in onsubmitmessage event");
+		}
+	}
 
 	if (!handled)
 		sendMessage(message);
