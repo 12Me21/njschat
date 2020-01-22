@@ -53,7 +53,7 @@ module.exports = {
 	// Room list colors
 	roomlist: {
 		fg: "#C0C0C0",
-		bg: "#000080",
+		bg: "#4040FF",
 	},
 	userlist: {
 		fg: "#FFFFFF",
@@ -62,9 +62,9 @@ module.exports = {
 	room_name: function(name, current, unread){
 		var n;
 		if (current)
-			n = C(name, [255,255,255]);
+			n = C(name, [0,0,0], [255,255,255]);
 		else
-			n = C(name, [160,160,160]);
+			n = C(name, [0,0,0]);
 		if (unread)
 			n += C("!", [255,255,255], [255,0,192]);
 		else

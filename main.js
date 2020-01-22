@@ -28,7 +28,7 @@ require("./api.js");
 			pmRooms = {};
 			for (i of msg.rooms)
 				pmRooms[i.name] = i;
-			allTags = ["general", "offtopic", "admin", "console", "any"].concat(msg.rooms.map(x=>x.name));
+			allTags = ["general", "offtopic", "admin", "any", "console", "image"].concat(msg.rooms.map(x=>x.name));
 			Graphics.update_room_list(allTags);
 			var x=Graphics.draw_userlist(msg.users);
 			lastUserList = msg.users;
@@ -98,13 +98,15 @@ require("./api.js");
 	Graphics.input.readInput();
 	Graphics.input.on("submit",function(text){
 		if (currentTag()=="console") {
-			console.log("<<< " + text);
+			console.log(">> " + text);
 			try {
 				var result = eval(text);
-				console.log(">>> " + result);
+				console.log("<< " + result);
 			} catch (e) {
 				console.error(e.stack.match(/^.*/)[0]);
 			}
+		} else if (currentTag()=="image"){
+			
 		} else
 			onSubmitMessage(text);
 		Graphics.input.readInput();

@@ -67,25 +67,8 @@ async function session2auth(session){
 }
 
 async function get_login(){
-	Graphics.render();
-	var input = function(prompt, censor){
-		return new Promise(resolve=>{
-			Graphics.input.clearValue();
-			Graphics.write_divider(prompt);
-			Graphics.input.readInput();
-			Graphics.input.censor = !!censor;
-			function done(text){
-				Graphics.input.removeListener("submit",done);
-				Graphics.write_divider("");
-				Graphics.input.clearValue();
-				Graphics.input.censor = false;
-				resolve(text);
-			}
-			Graphics.input.on("submit",done);
-		})
-	}
-	var username = await input("Username:");
-	var ligma = await input("P\x61ssword:",true);
+	var username = await Graphics.prompt("Username:");
+	var ligma = await Graphics.prompt("P\x61ssword:",true);
 	var balls = Crypto.createHash("md5").update(ligma).digest("hex");
 	return [username, balls];
 }

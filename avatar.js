@@ -5,27 +5,25 @@ const Sharp = require("sharp");
 //const Blessed = require("blessed");
 
 function getAvatar(url, width, height, callback) {
-	const resize = Sharp().resize(width,height,{fit:"cover"}).raw();
 	function gotBuffer(buffer){
-		if(!buffer.length)
-			return;
-		var pxsize = buffer.length/(width*height);
-		var out=[];
-		for(var i=0;i<buffer.length;i+=pxsize){
-			if (pxsize==4 && !buffer[i+3])
-				out.push([255,255,255]);
-			else
-				out.push([buffer[i],buffer[i+1],buffer[i+2]]);
-			
-		}
-		callback(out,width,height);
+		Sharp(buffer).resize(width,height,{fit:"inside"}).raw().toBuffer({resolveWithObject:true}).then(({data:buffer,info:info})=>{
+			var {width:width, height:height} = info;
+			var pxsize = buffer.length/(width*height);
+			var out=[];
+			for(var i=0;i<buffer.length;i+=pxsize){
+				if (pxsize==4 && !buffer[i+3])
+					out.push([255,255,255]);
+				else
+					out.push([buffer[i],buffer[i+1],buffer[i+2]]);
+				
+			}
+			callback(out, width, height);
+		}).catch(err=>{});
 	}
 
 	try{
 		Http.get(url, function(response){
-			x = response.pipe(resize).on("error",function(e){
-				console.error(e);
-			}).pipe(Concat(gotBuffer));
+			response.pipe(Concat(gotBuffer));
 		});
 	}catch(e){
 		console.error("request failed in getavatar: "+url);

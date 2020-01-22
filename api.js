@@ -13,6 +13,23 @@ global.startChatConnection = function(){};
 
 global.XMLHttpRequest = require("./xhr.js").XMLHttpRequest("https://smilebasicsource.com");
 
+global.StorageUtilities = {
+	GetPHPSession: function(){
+		return polyChat.session; //bad
+	},
+}
+
+global.allTags = ["general", "offtopic", "admin", "any", "console", "image"];
+const Graphics = require("./graphics.js");
+delete console; // for some reason console is frozen in some
+// versions of nodejs, so it has to be deleted before reassigning
+// otherwise the assignment will FAIL SILENTLY fuck you
+global.console = Graphics.console;
+const Fs = require("fs");
+
+global.PolyChat = require("./polychat.js").PolyChat;
+global.polyChat = new PolyChat(console);
+
 global.genericXHRSimple = function(page, callback){
 	var xhr = new XMLHttpRequest();
 	xhr.open("POST", page);
@@ -30,15 +47,9 @@ global.genericXHRSimple = function(page, callback){
 	xhr.send();
 }
 
-global.StorageUtilities = {
-	GetPHPSession: function(){
-		return polyChat.session; //bad
-	},
-}
-
 global.loadXMLDoc = function(theURL, callback, post){
 	post = typeof post !== 'undefined' ? post : false;
-	var xmlhttp = new XMLHttpRequest();
+	var xmlhttp = new XMLHttpRequest();n
 
 	xmlhttp.onreadystatechange=function(){
 		if (xmlhttp.readyState==4 && xmlhttp.status==200){
@@ -60,14 +71,6 @@ global.loadXMLDoc = function(theURL, callback, post){
 		xmlhttp.send();
 	}
 }
-
-global.allTags = ["general", "offtopic", "admin", "console", "any"];
-const Graphics = require("./graphics.js");
-console = Graphics.console;
-const Fs = require("fs");
-
-global.PolyChat = require("./polychat.js").PolyChat;
-global.polyChat = new PolyChat(console);
 
 
 function print_tmp(text, tag, color){

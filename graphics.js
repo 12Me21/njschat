@@ -91,6 +91,7 @@ var messagepanes = {};
 allTags.forEach(name=>{
 	messagepanes[name] = new_messagepane(name);
 });
+messagepanes.image.scrollable = false;
 var unreads = {};
 var messagepane = messagepanes.any;
 
@@ -145,13 +146,12 @@ function draw_userlist(users){
 input.key(S.keys.exit, function(ch, key) {
 	return process.exit(0);
 });
+input.key(S.keys.exit, function(ch, key) {
+	return process.exit(0);
+});
 screen.key(S.keys.exit, function(ch, key) {
 	return process.exit(0);
 });
-
-//input.key('C-z', function(ch, key) {
-//	return process.kill(process.pid, "SIGSTOP");
-//});
 
 function updatescrollbar(pane){
 	if (!pane || pane == messagepane) {
@@ -176,6 +176,7 @@ input.key(S.keys.scroll[1], function(ch, key) {
 	updatescrollbar();
 	screen.render();
 });
+
 function nextTag(offset){
 	var i = allTags.indexOf(currentTag());
 	if (i==-1)
@@ -213,6 +214,23 @@ exports.is_near_bottom = function(){
 	return messagepane.getScroll() > messagepane.getScrollHeight() - messagepane.height - 5;
 }
 
+exports.prompt = function(prompt, censor){
+	return new Promise(resolve=>{
+		Graphics.input.clearValue();
+		Graphics.write_divider(prompt);
+		Graphics.input.readInput();
+		Graphics.input.censor = !!censor;
+		function done(text){
+			Graphics.input.removeListener("submit",done);
+			Graphics.write_divider("");
+			Graphics.input.clearValue();
+			Graphics.input.censor = false;
+			resolve(text);
+		}
+		Graphics.input.on("submit",done);
+	});
+}
+
 function print(text, tag){
 	var pane = messagepanes[tag] || messagepanes.console
 	var scroll = exports.is_near_bottom();
@@ -231,11 +249,11 @@ exports.print = function(text, tag){
 		
 		if (tag != "any"){
 			print(text, tag);	
-			if (tag != "console")
+			if (tag != "console" && tag!="image")
 				print(S.messageLabel(tag)+text, "any");
 		} else {
 			for (name in messagepanes) {
-				if (name != "console")
+				if (name != "console" && name !="image")
 					print(text, name);
 			}
 		}
@@ -265,11 +283,11 @@ exports.console = {
 	ln: Math.log,
 	warn: function(...a){
 		a = a.join(" ");
-		exports.print(C(a,"#008000"),"console");
+		exports.print(C(a,[128,128,0]),"console");
 	},
 	error: function(...a){
 		a = a.join(" ");
-		exports.print(C(a,"#FF0000"),"console");
+		exports.print(C(a,[255,0,0]),"console");
 	},
 }
 
