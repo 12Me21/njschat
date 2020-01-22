@@ -55,9 +55,9 @@ async function session2auth(session){
 			function(data){
 				data=JSON.parse(data);
 				if(data.result)
-					callback([data.result, data.requester.uid, data.requester.username]);
+					callback([data.result, data.requester]);
 				else
-					callback([null, null, null, data.errors]);
+					callback([null, null, data.errors]);
 			},
 		);
 	});
@@ -82,6 +82,8 @@ function save_session(session, filename){
 	Fs.writeFile(filename, session, x=>x);
 }
 
+// get session, either from session file or by logging in again
+// always returns a valid session if `force` is true
 async function get_session(filename, force){
 	if (!force)
 		session = await load_session(filename);
@@ -97,17 +99,17 @@ async function get_session(filename, force){
 }
 
 module.exports = async function(filename) {
-	var auth;
 	var session = await get_session(filename);
-	if (session) {
-		[auth, uid, username] = await session2auth(session);
-		if (auth)
-			return [uid, auth, username, session];
-	}
-	session = await get_session(filename, true); //something went wrong, ask user to log in again
-	if (session) {
-		[auth, uid, username] = await session2auth(session);
-		if (auth)
-			return [uid, auth, username, session];
-	}
+	var [auth, user, errors] = await session2auth(session);
+	if (auth)
+		return [user, auth, session];
+	// something went wrong, ask user to log in again
+	// (most likely caused by the saved session expiring)
+	var session = await get_session(filename, true);
+	var [auth, user, errors] = await session2auth(session);
+	if (auth)
+		return [user, auth, session];
+	// failed again
+	console.error("Failed to get auth key.");
+	return [null, null, null, errors];
 }

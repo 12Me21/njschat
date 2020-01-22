@@ -75,6 +75,7 @@ addMessageEvent(function(messageElement) {
 		}
 	}
 });
+
 commands.push(new Command("reply", function(params){
 	if(pmSender!==null) {
 		sendMessage("/pm #"+pmSender+params);
@@ -88,14 +89,9 @@ commands.push(new Command("avatar",function(params){
 	getAvatarFile(params.trim(), function(filename){
 		if (filename) {
 			localModuleMessage(params.trim()+" has avatar https://smilebasicsource.com/user_uploads/avatars/"+filename)
-			di("http://smilebasicsource.com/user_uploads/avatars/"+filename);
 		} else {
 			warningMessage("User not found");
 		}
 		
 	});
 },"Get user avatar"));
-
-commands.push(new Command("di",function(params){
-	di(params.trim());
-},"display image"));

@@ -12,13 +12,20 @@ process.on('SIGINT', function() {
 var firstBind = true;
 polyChat.onMessage = onMessage;
 
+var currentTab;
+
 Auth("session.txt").then(function(x){
-	[useruid, auth, username] = x;
-	polyChat.session = session;
-	polyChat.start(useruid, auth, process.argv.length==3 ? PolyChat.ForceXHR : undefined);
-	startChatConnection();
-	Graphics.input.on("submit",submitMessage);
-	Graphics.input.readInput();
+	var user;
+	[user, auth, session] = x;
+	if (auth) {
+		useruid = user.uid;
+		username = user.username;
+		polyChat.session = session;
+		polyChat.start(useruid, auth, process.argv.length==3 ? PolyChat.ForceXHR : undefined);
+		startChatConnection();
+		Graphics.input.on("submit",submitMessage);
+		Graphics.input.readInput();
+	}
 });
 
 function onMessage(msg) {
@@ -33,7 +40,7 @@ function onMessage(msg) {
 		pmRooms = {};
 		for (i of msg.rooms)
 			pmRooms[i.name] = i;
-		allTags = ["general", "offtopic", "admin", "any", "console", "image"].concat(msg.rooms.map(x=>x.name));
+		allTags = ["general", "offtopic", "admin", "any", "console"].concat(msg.rooms.map(x=>x.name));
 		Graphics.update_room_list(allTags);
 		var x=Graphics.draw_userlist(msg.users);
 		lastUserList = msg.users;
@@ -68,7 +75,7 @@ function onMessage(msg) {
 				}
 				if(onBind)
 					onBind(firstBind, availableModules);
-				var request = { "type" : "request", "request" : "messageList" }; 
+				var request = {"type": "request", "request": "messageList"};
 				polyChat.sendMessage(JSON.stringify(request));
 				firstBind = false;
 				setTabTag("offtopic");
@@ -90,7 +97,7 @@ function onMessage(msg) {
 	}
 }
 
-function submitMessage(text){
+function submitMessage(text) {
 	if (currentTag()=="console") {
 		console.log(">> " + text);
 		try {
@@ -99,11 +106,6 @@ function submitMessage(text){
 		} catch (e) {
 			console.error(e.stack.match(/^.*/)[0]);
 		}
-	} else if (currentTag()=="image"){
-		if (text[0]=="!"){
-			di(text.substr(1),true);
-		} else
-			di(text);
 	} else
 		onSubmitMessage(text);
 	Graphics.input.readInput();

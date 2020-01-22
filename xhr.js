@@ -56,7 +56,7 @@ const forbiddenRequestHeaders = [
 	"via"
 ];
 
-exports.XMLHttpRequest = function(defaultHost){
+module.exports = function(defaultHost){
 	return function() {
 		"use strict";
 

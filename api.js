@@ -11,7 +11,7 @@ global.btoa = function(string){
 
 global.startChatConnection = function(){};
 
-global.XMLHttpRequest = require("./xhr.js").XMLHttpRequest("https://smilebasicsource.com");
+global.XMLHttpRequest = require("./xhr.js")("https://smilebasicsource.com");
 
 global.StorageUtilities = {
 	GetPHPSession: function(){
@@ -21,11 +21,7 @@ global.StorageUtilities = {
 
 global.allTags = ["general", "offtopic", "admin", "any", "console", "image"];
 const Graphics = require("./graphics.js");
-delete console; // for some reason console is frozen in some
-// versions of nodejs, so it has to be deleted before reassigning
-// otherwise the assignment will FAIL SILENTLY fuck you
 global.console = Graphics.console;
-const Fs = require("fs");
 
 global.PolyChat = require("./polychat.js").PolyChat;
 global.polyChat = new PolyChat(console);
@@ -70,13 +66,6 @@ global.loadXMLDoc = function(theURL, callback, post){
 		xmlhttp.open("GET", theURL, true);
 		xmlhttp.send();
 	}
-}
-
-
-function print_tmp(text, tag, color){
-	text = text.replace(/\n*$/,"");
-	text = Graphics.colorize(text, color);
-	Graphics.print(text, tag);
 }
 
 global.onBind = null;
@@ -220,7 +209,7 @@ global.onSubmitMessage = function(message){
 			if(onSubmitMessage.events[i](eventParam))
 				handled = true;
 		}catch(e){
-			warningMessage("Error in onsubmitmessage event");
+			warningMessage("Error in onsubmitmessage event\n" + e.stack);
 		}
 	}
 
@@ -232,8 +221,7 @@ global.onSubmitMessage = function(message){
 
 onSubmitMessage.events = [];
 
-global.Command = function (command, callback, description)
-{
+global.Command = function (command, callback, description) {
 	this.command = command;
 	this.callback = callback;
 	this.description = getOrDefault(description, "");
@@ -253,7 +241,8 @@ global.quickParamParse = function(params)
 }
 
 // Load chatjs
-var pathJoin = require("path").join;
+const Fs = require("fs");
+const pathJoin = require("path").join;
 var chatjsfolder = pathJoin(__dirname, "chatjs");
 Fs.readdirSync(chatjsfolder).forEach(function(file){
 	try {
@@ -262,7 +251,6 @@ Fs.readdirSync(chatjsfolder).forEach(function(file){
 		warningMessage("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
 	}
 });
-
 
 // TODO: try/catch on chatjs and other dangerous code !!!
 global.getAvatarFile = function(name, callback){

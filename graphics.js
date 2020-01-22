@@ -1,11 +1,6 @@
 //TODO: resize events
-
 var S = require("./settings.js");
-
 var Graphics = exports
-
-//var Avatar = require("./avatar.js");
-
 var blessed = require("blessed");
 
 var screen = blessed.screen({
@@ -19,17 +14,6 @@ var chatpane = blessed.box({
 });
 
 var minDim = Math.min(screen.width, screen.height*2);
-
-var imageViewer = blessed.box({
-	parent: screen,
-	width: minDim,
-	height: minDim/2,
-	right: 0,
-	hidden: true,
-	style: {
-		bg: "#FFFFFF",
-	},
-});
 
 var input = blessed.textbox({
 	parent: chatpane,
@@ -160,11 +144,6 @@ function updatescrollbar(pane){
 	}
 }
 	
-input.key(S.keys.closeImage, function(ch, key) {
-	imageViewer.hide();
-	chatpane.width = screen.width;
-	screen.render();
-});
 input.key(S.keys.scroll[0], function(ch, key) {
 	messagepane.scroll(-1);
 	updatescrollbar();
@@ -248,11 +227,11 @@ exports.print = function(text, tag){
 		
 		if (tag != "any"){
 			print(text, tag);	
-			if (tag != "console" && tag!="image")
+			if (tag != "console")
 				print(S.messageLabel(tag)+text, "any");
 		} else {
 			for (name in messagepanes) {
-				if (name != "console" && name !="image")
+				if (name != "console")
 					print(text, name);
 			}
 		}
@@ -307,25 +286,6 @@ function indent(message, indent){
 	return indent+message.replace(/\n/g,"\n"+indent);
 }
 
-/*function insertAvatar(pane, y, data) {
-	//console.log(data[0],data[1]);
-	var x = pane.getLine(y);
-	var text = ""
-	for (var i=0;i<4;i++){
-		text += ansi(data[i],data[i+4])+"▀";
-	}
-	text += "\x1B[m";
-	pane.setLine(y,text+x.substr(4))
-	text = ""
-	x = pane.getLine(y+1);
-	for (var i=8;i<12;i++){
-		text += ansi(data[i],data[i+4])+"▀";
-	}
-	text += "\x1B[m";
-	pane.setLine(y+1,text+x.substr(4))
-	screen.render();
-	}*/
-
 // Display normal message
 exports.printMessage = function(user, message, tab){
 	var username = user.username;
@@ -334,12 +294,8 @@ exports.printMessage = function(user, message, tab){
 	if (pane._.last == username) {
 		Graphics.print(indent(message,"   ","   "), tab);
 	} else {
-		
 		Graphics.print("  "+S.username(user), tab);
 		Graphics.print(indent(message,"   ","   "), tab);
-		//Avatar.get3x2(user.avatar,function(data){
-	//		insertAvatar(pane, y, data);
-//		})
 	}
 	pane._.last = username;
 }
@@ -353,34 +309,3 @@ exports.printSystemMessage = function(message, tab){
 exports.printWarningMessage = function(message, tab){
 	Graphics.print(S.warningMessage(message), tab);
 }
-
-function ansi(fg,bg){
-	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
-}
-var Avatar = require("./avatar.js");
-function displayImage(url, fit, pane) {
-	//console.log(fit+"/"+(fit?"inside":"cover"))
-	if (/^\w+$/.test(url)){
-		getAvatarFile(url, x=>displayImage("http://smilebasicsource.com/user_uploads/avatars/"+x, fit));
-	} else {
-		pane = pane || messagepanes.image;
-		Avatar.getImage(url, pane.width-1,pane.height*2, fit?"inside":"cover", function(data, width, height){
-			var str="";
-			var n=0;
-			for (var j=0;j<height;j+=2){
-				if (j)
-					str+="\n";
-				for (var i=0;i<width;i++){
-					str+=ansi(data[n],data[n+width])+"▀";
-					n++;
-				}
-				n+=width;
-				str +="\x1B[m";
-			}
-			pane.setContent(str);
-			screen.render();
-		});
-	}
-}
-
-global.di = displayImage;
