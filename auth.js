@@ -1,10 +1,7 @@
 const Https = require("https");
 const Crypto = require("crypto");
-const Readline = require("readline");
 const Fs = require("fs");
 const Graphics = require("./graphics.js");
-
-const SESSION_FILE = "session.txt"
 
 function get(options, body, callback){
 	var req = Https.request(options, function(result){
@@ -73,47 +70,44 @@ async function get_login(){
 	return [username, balls];
 }
 
-async function load_session(){
+async function load_session(filename){
 	return new Promise(callback=>{
-		Fs.readFile(SESSION_FILE, (err, data)=>{
+		Fs.readFile(filename, (err, data)=>{
 			callback(data);
 		});
 	});
 }
 
-function save_session(session){
-	Fs.writeFile(SESSION_FILE, session, x=>x);
+function save_session(session, filename){
+	Fs.writeFile(filename, session, x=>x);
 }
 
-async function get_session(force){
+async function get_session(filename, force){
 	if (!force)
-		session = await load_session();
+		session = await load_session(filename);
 	while (!session) {
 		[username, passwordhash] = await get_login();
 		session = await login2session(username, passwordhash);
 		if (session)
-			save_session(session);
+			save_session(session, filename);
 		else
-			Graphics.log("Failed to log in");
+			console.error("Failed to log in, try again");
 	}
 	return session;
 }
 
-async function get_auth() {
+module.exports = async function(filename) {
 	var auth;
-	var session = await get_session();
+	var session = await get_session(filename);
 	if (session) {
 		[auth, uid, username] = await session2auth(session);
 		if (auth)
 			return [uid, auth, username, session];
 	}
-	session = await get_session(true); //something went wrong, ask user to log in again
+	session = await get_session(filename, true); //something went wrong, ask user to log in again
 	if (session) {
 		[auth, uid, username] = await session2auth(session);
 		if (auth)
 			return [uid, auth, username, session];
 	}
 }
-
-exports.getAuth = get_auth
-//*/

@@ -213,7 +213,6 @@ exports.XMLHttpRequest = function(defaultHost){
 
 
 			var url = new URL(settings.url, defaultHost);
-			console.log(url.protocol);
 			var ssl = url.protocol == "https:";
 			var host = url.hostname;
 

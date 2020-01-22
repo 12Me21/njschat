@@ -4,9 +4,10 @@ const Concat = require("concat-stream");
 const Sharp = require("sharp");
 //const Blessed = require("blessed");
 
-function getAvatar(url, width, height, callback) {
+function getAvatar(url, width, height, fit, callback) {
+	console.log("rendering avatar with fit:"+fit);
 	function gotBuffer(buffer){
-		Sharp(buffer).resize(width,height,{fit:"inside"}).raw().toBuffer({resolveWithObject:true}).then(({data:buffer,info:info})=>{
+		Sharp(buffer).resize(width,height,{fit:fit}).raw().toBuffer({resolveWithObject:true}).then(({data:buffer,info:info})=>{
 			var {width:width, height:height} = info;
 			var pxsize = buffer.length/(width*height);
 			var out=[];

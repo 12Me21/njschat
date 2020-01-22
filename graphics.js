@@ -63,7 +63,7 @@ var userlist = blessed.box({
 	style: S.userlist,
 })
 
-function new_messagepane(name){
+function new_messagepane(name, noscroll){
 	var scrollbarColors = S.messagepane.scrollbar(name, false);
 	return blessed.box({
 		parent: chatpane,
@@ -71,8 +71,8 @@ function new_messagepane(name){
 		left: 0,
 		height: chatpane.height-input.height-divider.height-userlist.height-roomlist.height,
 		keys: true,
-		alwaysScroll: true,
-		scrollable: true,
+		alwaysScroll: !noscroll,
+		scrollable: !noscroll,
 		scrollbar: {
 			style: {bg: scrollbarColors.fg},
 			track: {bg: scrollbarColors.bg},
@@ -91,7 +91,6 @@ var messagepanes = {};
 allTags.forEach(name=>{
 	messagepanes[name] = new_messagepane(name);
 });
-messagepanes.image.scrollable = false;
 var unreads = {};
 var messagepane = messagepanes.any;
 
@@ -359,26 +358,29 @@ function ansi(fg,bg){
 	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
 }
 var Avatar = require("./avatar.js");
-function displayImage(url) {
-	Avatar.getImage(url, minDim, minDim, function(data, width, height){
-		var str="";
-		var n=0;
-		for (var j=0;j<height;j+=2){
-			if (j)
-				str+="\n";
-			for (var i=0;i<width;i++){
-				str+=ansi(data[n],data[n+width])+"▀";
-				n++;
+function displayImage(url, fit, pane) {
+	//console.log(fit+"/"+(fit?"inside":"cover"))
+	if (/^\w+$/.test(url)){
+		getAvatarFile(url, x=>displayImage("http://smilebasicsource.com/user_uploads/avatars/"+x, fit));
+	} else {
+		pane = pane || messagepanes.image;
+		Avatar.getImage(url, pane.width-1,pane.height*2, fit?"inside":"cover", function(data, width, height){
+			var str="";
+			var n=0;
+			for (var j=0;j<height;j+=2){
+				if (j)
+					str+="\n";
+				for (var i=0;i<width;i++){
+					str+=ansi(data[n],data[n+width])+"▀";
+					n++;
+				}
+				n+=width;
+				str +="\x1B[m";
 			}
-			n+=width;
-			str +="\x1B[m";
-		}
-		imageViewer.setContent(str);
-		imageViewer.show();
-		chatpane.width = screen.width-imageViewer.width;
-		imageViewer.setIndex(100);
-		screen.render();
-	});
+			pane.setContent(str);
+			screen.render();
+		});
+	}
 }
 
 global.di = displayImage;

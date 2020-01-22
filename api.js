@@ -79,6 +79,7 @@ function print_tmp(text, tag, color){
 	Graphics.print(text, tag);
 }
 
+global.onBind = null;
 global.auth = null;
 global.useruid = null;
 global.username = null;
@@ -261,3 +262,20 @@ Fs.readdirSync(chatjsfolder).forEach(function(file){
 		warningMessage("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
 	}
 });
+
+
+// TODO: try/catch on chatjs and other dangerous code !!!
+global.getAvatarFile = function(name, callback){
+	var user = lastUserList.find(x=>x.username==name);
+	if (user)
+		callback(user.avatar.match(/\/t(.*)?$/)[1]);
+	else {
+		genericXHRSimple("/query/request/user?username="+name,function(output){
+			output = JSON.parse(output);
+			if (output.result)
+				callback(output.result.rawavatar);
+			else
+				callback(null);
+		});
+	}
+}

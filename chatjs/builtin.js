@@ -84,22 +84,6 @@ commands.push(new Command("reply", function(params){
 	return true;
 }),"Reply to last pm");
 
-// TODO: try/catch on chatjs and other dangerous code !!!
-function getAvatarFile(name, callback){
-	var user = lastUserList.find(x=>x.username==name);
-	if (user)
-		callback(user.avatar.match(/\/t(.*)?$/)[1]);
-	else {
-		genericXHRSimple("/query/request/user?username="+name,function(output){
-			output = JSON.parse(output);
-			if (output.result)
-				callback(output.result.rawavatar);
-			else
-				callback(null);
-		});
-	}
-}
-
 commands.push(new Command("avatar",function(params){
 	getAvatarFile(params.trim(), function(filename){
 		if (filename) {
