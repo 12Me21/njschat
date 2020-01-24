@@ -1,6 +1,15 @@
 const C = require("./c.js");
 
 class Room {
+	static drawList = null; // function to update list graphics
+	static list = []; // list of all rooms
+	static current; // current room
+	makeBox(){}; // function to make new list element
+	
+	last = null; // last sender, if last message was normal
+	lastUser = null; // last sender, always
+	unread = false;
+
 	constructor(name, users) {
 		if (typeof name != "string") {
 			users = name.users;
@@ -9,14 +18,7 @@ class Room {
 		this.name = name;
 		this.users = users;
 		this.box = this.makeBox();
-		this.last = null; //last sender, if last message was normal
-		this.lastUser = null; //last sender, always
-		this.unread = false;
 	};
-	makeBox(){};
-	static drawList = null;
-	static list = [];
-	static current;
 		
 	static updateList(newRooms) {
 		// add new rooms to list
