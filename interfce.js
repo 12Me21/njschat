@@ -1,66 +1,22 @@
-var Console = require("console").Console;
-
-var Stream = require("stream");
-class StreamToString extends Stream.Writable {
-	#dat = ""
-	constructor(x, callback){
-		super(x);
-		this.callback = callback;
-	}
-	#callback
-	set callback(callback){
-		this.#callback = callback;
-		this.tryCallback();
-	}
-	_write(chunk, enc, next){
-		process.stderr.write(chunk);
-		this.#dat += chunk.toString();
-		this.tryCallback();
-		next();
-	}
-	tryCallback() {
-		if (this.#callback) {
-			var i = this.#dat.lastIndexOf("\n");
-			if (i!=-1){
-				this.#callback(this.#dat.substr(0,i+1))
-				this.#dat = this.#dat.substr(i+1);
-			}
-		}
-	}
-}
-
-var fakeStdout = new StreamToString();
-global.console = Console({
-	stdout: fakeStdout,
-	stderr: fakeStdout,
-	colorMode: true,
-});
-
 require("./patch.js");
 var G = require("./screen.js");
 var I = exports;
-
-fakeStdout.callback = G.log;
 
 exports.onUnload = function(){
 	G.onUnload();
 }
 
-exports.onLoad = function(state, submit){
+exports.setInputHandler = G.setInputHandler;
+
+exports.onLoad = function(state, submit, fakeStdout){
+	fakeStdout.callback = G.log;
 	G.onLoad(I, state);
-	G.setInputHandler(function(text, room){
-		submit({
-			type: "message",
-			text: text,
-			tag: room,
-		});
-	});
+	//G.setInputHandler();
 	console.error("hello!");
-	
 }
 
 exports.updateUserlist = G.updateUserlist;
-exports.updateRoomlist = G.updateRoomlist;
+exports.updateRoomlist = require("./room.js").updateList;
 exports.prompt = G.prompt;
 
 function stripHTML(string){

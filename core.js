@@ -1,9 +1,47 @@
-require("./auth.js");
+var Console = require("console").Console;
+
+var Stream = require("stream");
+class StreamToString extends Stream.Writable {
+	#dat = ""
+	constructor(x, callback){
+		super(x);
+		this.callback = callback;
+	}
+	#callback
+	set callback(callback){
+		this.#callback = callback;
+		this.tryCallback();
+	}
+	_write(chunk, enc, next){
+		if (!process.stderr.isTTY)
+			process.stderr.write(chunk);
+		this.#dat += chunk.toString();
+		this.tryCallback();
+		next();
+	}
+	tryCallback() {
+		if (this.#callback) {
+			var i = this.#dat.lastIndexOf("\n");
+			if (i!=-1){
+				this.#callback(this.#dat.substr(0,i+1))
+				this.#dat = this.#dat.substr(i+1);
+			}
+		}
+	}
+}
+
+var fakeStdout = new StreamToString();
+global.console = Console({
+	stdout: fakeStdout,
+	stderr: fakeStdout,
+	colorMode: true,
+});
+
 var PolyChat = require("./polychat.js");
 var Auth = require("./auth.js");
 var I;
 
-var polyChat = new PolyChat();
+var polyChat = new PolyChat(console);
 
 var defaultRooms = [
 	{name: "console"},
@@ -33,15 +71,17 @@ global.reload =function(){
 		I.onUnload();
 		require.cache = {}; //bad...
 		I = require("./interfce.js");
-		I.onLoad(state, submitMessage);
+		I.onLoad(state, submitMessage, fakeStdout);
 		console.log(require.cache);
 	} else {
 		I = require("./interfce.js");
-		I.onLoad(state, submitMessage);
+		I.onLoad(state, submitMessage, fakeStdout);
 	}
 }
 
 reload();
+
+console.log("starting");
 
 Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
 	if (!user){
@@ -49,10 +89,18 @@ Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
 		I.log(errors.join("\n"));
 		return;
 	}
+	I.setInputHandler(function(text, room){
+		submitMessage({
+			type: "message",
+			text: text,
+			tag: room,
+		});
+	});
 	var {uid: useruid, username: username} = user;
 	_auth = auth;
 	polyChat.session = session;
-	polyChat.start(useruid, auth);
+	polyChat.start(useruid, auth, PolyChat.ForceXHR);
+	var firstMessageList = false;
 	polyChat.onMessage = function(msg){
 		switch(msg.type){
 		case "userList":
@@ -62,6 +110,10 @@ Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
 			I.updateRoomlist(state.rooms);
 			break;
 		case "messageList":
+			if (!firstMessageList) {
+				firstMessageList = true;
+				console.log("Got first message list :D");
+			}
 			msg.messages.forEach(I.displayMessage);
 			break;
 		case "response":

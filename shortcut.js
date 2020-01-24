@@ -3,14 +3,16 @@ module.exports = function(G, input){
 		return process.exit(0);
 	});
 	input.key("up", function(ch, key) {
-		x= G.Room.current;
-//		G.log(x.atBottom(), x.box.getScroll(), x.box.getScrollHeight());
 		G.scrollCurrent(-1);
 	});
 	input.key("down", function(ch, key) {
-		x= G.Room.current;
-//		G.log(x.atBottom(), x.box.getScroll(), x.box.getScrollHeight());
 		G.scrollCurrent(1);
+	});
+	input.key("pageup", function(ch, key) {
+		G.scrollCurrent(-1, true);
+	});
+	input.key("pagedown", function(ch, key) {
+		G.scrollCurrent(1, true);
 	});
 	input.key("left", function(ch, key) {
 		G.switchRoom(-1);

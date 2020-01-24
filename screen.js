@@ -1,18 +1,7 @@
-console.log("S?");
-
-var Blessed = require("blessed");
-function C(text,fg,bg){
-	text = text.replace(/\x1B/g,"");
-	if (!fg && !bg)
-		return text;
-	if (!bg) {
-		return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+"m"+text+"\x1B[m";
-	}
-	if (!fg)
-		return "\x1B[48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m"+text+"\x1B[m";
-	return "\x1B[38;2;"+fg[0]+";"+fg[1]+";"+fg[2]+";48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m"+text+"\x1B[m";
-}
 const G = exports;
+var Blessed = require("blessed");
+var C = require("./c.js");
+const Room = require("./room.js");
 
 var screen = Blessed.screen({
 	smartCSR: true,
@@ -57,137 +46,64 @@ var userlist = Blessed.box({
 	}
 });
 
-var rooms = [];
-
-function Room(name, users){
-	if (typeof name == "string"){
-		this.name = name;
-		this.users = users;
-	} else {
-		this.name = name.name;
-		this.users = name.users;
-	}
-	this.box = Blessed.scrollablebox({
+Room.prototype.makeBox = function(){
+	return Blessed.scrollablebox({
 		parent: screen,
 		top: userlist.height+roomlist.height,
-		left: 0,
 		bottom: input.height+divider.height,
 		keys: true,
 		alwaysScroll: true,
 		hidden: true,
 		scrollbar: {
-			style:{
-				bg: "#FF0000",
-			},
-			track:{
-				bg: "#C0C0C0",
-			},
+			style:{bg: "#FF0000"},
+			track:{bg: "#C0C0C0"},
 		},
 	});
-	//getscroll is broken somehow
-	//this.box.getScroll = function(){return this.childBase;};
-	this.last = null;
-	this.unread = false;
-}
+};
 
-Room.prototype.label = function(){
-	var n;
-	if (this === Room.current)
-		n = C(" "+this.name, [0,0,0], [255,255,255]);
-	else
-		n = C(" "+this.name, [0,0,0]);
-	
-	if (this.unread)
-		n += C("!", [255,255,255], [255,0,192]);
-	else {
-		if (this === Room.current)
-			n += C(" ", [0,0,0], [255,255,255]);
-		else
-			n += C(" ", [0,0,0]);
-	}
-	return n;
-}
-
-Room.current = null;
-
-Room.prototype.add = function(){
-	if (!rooms[this.name]) {
-		rooms.push(this);
-		rooms[this.name]=this;
-		if (!Room.current)
-			this.show();
-	}
-}
-
-Room.prototype.show = function(){
-	if (Room.current)
-		Room.current.box.hide();
-	Room.current = this;
-	Room.current.box.show();
-	if (Room.current.atBottom())
-		Room.current.unread = false;
-	G.updateRoomlist();
+Room.drawList = function(text) {
+	roomlist.setContent(text);
 	screen.render();
 }
-
-Room.prototype.atBottom = function(){
-	//return this.box.getScrollHeight()<=this.box.height || this.box.getScrollPerc()==100;
-	// getScroll is broken fuck
-	return this.box.getScroll() >= this.box.getScrollHeight()-this.box.height;
-}
-
-Room.prototype.updateScrollbar = function(){
-	if (this.atBottom()){
-		if (this===Room.current) {
-			this.unread = false;
-			G.updateRoomlist();
-		}
-		this.box.scrollbar.style.bg = "#00FF00";
-	} else {
-		this.box.scrollbar.style.bg = "#FF0000";
-	}
-	screen.render();
-}
-
-// rooms
-// each item has
-// name: name of room
-// box: element
-// users: list of users in room (for pm rooms)
-// unread: if there are unread messages
-// this is both a dict and an array
-// rooms[0] exists and rooms.general exists eeeeeee
 
 exports.switchRoom = function(d) {
-	var i = rooms.findIndex(x=>x===Room.current);
-	return rooms[(i+d+rooms.length)%rooms.length].show();
+	var i = Room.list.findIndex(x=>x===Room.current);
+	return Room.list[(i+d+Room.list.length)%Room.list.length].show();
 }
 
 var inputHandler = null;
+var setOn = false;
 
-exports.setInputHandler = function(func){
+exports.setInputHandler = function(func, bypassConsole) {
 	input.readInput();
 	inputHandler = func;
-	input.on("submit", function(text){
-		if (Room.current = rooms.console) {
-			G.log("<< " + text);
-			try{
-				console.log(">> ", eval(text));
-			} catch(e) {
-				console.error(e);
+	if (!setOn) {
+		input.on("submit", function(text) {
+			if (!bypassConsole && Room.current == Room.list.console) {
+				input.clearValue();
+				screen.render();
+				G.log("<< " + text);
+				try{
+					console.log(">> ", eval(text));
+				} catch(e) {
+					console.error(e);
+				}
+			} else {
+				if (inputHandler) {
+					input.clearValue();
+					screen.render();
+					inputHandler(text, Room.current.name);
+				}
 			}
-		} else {
-			inputHandler(text, Room.current.name);
-		}
-		input.clearValue();
-		input.readInput();
-		screen.render();
-	});
+			input.readInput();
+		});
+		setOn = true;
+	}
 }
 
 exports.onLoad = function(I, state){
 	G.updateUserlist(state.users);
-	G.updateRoomlist(state.rooms);
+	Room.updateList(state.rooms);
 }
 
 G.Room = Room;
@@ -213,60 +129,31 @@ exports.updateUserlist = function(newUserlist = lastUserlist){
 	screen.render();
 }
 
-exports.updateRoomlist = function(newRooms){
-	// add new rooms to list
-	if (newRooms)
-		newRooms.forEach(room=>{
-			new Room(room).add();
-		});
-	// redraw roomlist
-	roomlist.setContent(rooms.map(room=>room.label()).join(""));
-	// if this is the first update
-	screen.render();
-}
-
-// this does the actual printing
-function print2(text, room, fuck) {
-	var pane = room.box;
-	var scroll = room.atBottom();
-	room.last = null;
-	pane.pushLine(text);
-	if (scroll) {
-		pane.setScrollPerc(100);
-	}
-	room.updateScrollbar();
-	screen.render();
-}
-
-function messageLabel(room){
-		return C("["+room.name+"]");
-}
-
 // print text to pane
 // text should be already formatted. there's no going back at this point
 function print(text, roomName, fuck) {
-	if (!rooms[roomName])
-		return; //bad
+	text = text.replace(/\n+$/,""); //trim trailing newlines
+	var room = Room.list[roomName];
 	if (roomName=="any"){
-		rooms.forEach(room=>{
+		Room.list.forEach(room=>{
 			if (room.name != "console")
-				print2(text, room, fuck);
+				room.print(text);
 		});
-	} else {
-		print2(text, rooms[roomName], fuck);
-		if (rooms[roomName]!==Room.current) {
-			rooms[roomName].unread = true;
-			G.updateRoomlist();
+	} else if (room) { //should always happen then
+		room.print(text);
+		if (room !== Room.current) {
+			room.unread = true;
+			Room.updateList();
 		}
 		if (roomName != "console") {
-			print2(messageLabel(rooms[roomName])+text, rooms.any, fuck);
+			Room.list.any.print(room.messageLabel()+text);
 		}
 	}
 }
 
-
-
-exports.scrollCurrent = function(amount) {
+exports.scrollCurrent = function(amount, page) {
+	if (page)
+		amount *= Room.current.box.height-2;
 	Room.current.box.scroll(amount);
 	divider.setText(""+Room.current.box.childBase+" "+Room.current.box.childOffset+" "+Room.current.box.getScrollHeight()+" "+Room.current.box.getScroll());
 	Room.current.updateScrollbar();
@@ -274,7 +161,7 @@ exports.scrollCurrent = function(amount) {
 }
 
 exports.log = function(...a) {
-	print(a.join(" "), "console", true);
+	print(a.join(" "), "console");
 }
 
 function indent(message, indent){
@@ -282,17 +169,39 @@ function indent(message, indent){
 }
 
 exports.message = function(text, roomName, {username: username = null} = {}){
-	var room = rooms[roomName];
+	var room = Room.list[roomName];
 	if (room && room.last != username) {
+		if (room.lastUser != username)
+			print("", roomName);
 		print("  "+C(username,undefined,[192,129,192]), roomName);
 	}
 	print(C(indent(text,"   ")), roomName)
 	room.last = username;
+	room.lastUser = username;
 }
 
-exports.moduleMessage = exports.warningMessage = exports.systemMessage = function (text, room) {
+exports.systemMessage = function (text, room) {
+	print("", room);
 	print(C(text,[64,64,64]), room);
 }
+
+exports.warningMessage = function (text, room) {
+	print("", room);
+	print(C(text,[192,64,64]), room);
+}
+
+exports.moduleMessage = function (text, roomName, {username: username = null} = {}) {
+	var room = Room.list[roomName];
+	if (room.lastUser != username)
+		print("", roomName);
+	if (username && text.substr(0,username.length+1) == username+" ") {
+		print(C(username,undefined,[255,200,255])+C(text.substr(username.length),[64,64,64]), roomName);
+	} else {
+		print(C(text,[64,64,64]), roomName);
+	}
+	room.lastUser = username;
+}
+
 
 /*screen.key("C-c", function(ch, key) {
 	return process.exit(0);
@@ -305,17 +214,16 @@ exports.prompt = function(prompt, censor) {
 	return new Promise(resolve=>{
 		input.clearValue();
 		divider.setText(prompt);
-		input.readInput();
 		input.censor = !!censor;
+		G.setInputHandler(done, true);
 		function done(text){
-			input.removeListener("submit", done);
+			G.setInputHandler(null, false);
 			divider.setText("");
 			input.clearValue();
 			input.censor = false;
 			screen.render();
 			resolve(text);
 		}
-		input.on("submit", done);
 		screen.render();
 	});
 }

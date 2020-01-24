@@ -3,12 +3,14 @@ const Crypto = require("crypto");
 const Fs = require("fs");
 
 function get(options, body, callback){
+	console.log("Request started (if you get stuck here it means your're not connected to the internet)")
 	var req = Https.request(options, function(result){
 		var all="";
 		result.on("data", function(data){
 			all += data.toString('utf-8');
 		});
 		result.on("end", function(){
+			console.log("Request finished")
 			callback(all);
 		});
 	});
@@ -19,6 +21,7 @@ function get(options, body, callback){
 
 // username/password -> session token
 async function login2session(username, passwordhash){
+	console.log("Getting session");
 	return await new Promise(callback => {
 		get(
 			{
@@ -43,6 +46,7 @@ async function login2session(username, passwordhash){
 
 // session token -> chat auth key
 async function session2auth(session){
+	console.log("Getting auth");
 	return await new Promise(callback => {
 		get(
 			{
@@ -63,6 +67,7 @@ async function session2auth(session){
 }
 
 async function get_login(prompt){
+	console.log("getting username/password");
 	var username = await prompt("Username:");
 	var ligma = await prompt("P\x61ssword:",true);
 	var balls = Crypto.createHash("md5").update(ligma).digest("hex");
@@ -98,6 +103,7 @@ async function get_session(prompt, filename, force){
 }
 
 module.exports = async function(prompt, filename) {
+	console.log("auth.js");
 	var session = await get_session(prompt, filename);
 	var [auth, user, errors] = await session2auth(session);
 	if (auth)

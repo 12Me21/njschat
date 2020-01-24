@@ -1,6 +1,7 @@
 /// Nodejs compatibility
 
 const WebSocket = require("isomorphic-ws");
+const XMLHttpRequest = require("./xhr.js")("https://smilebasicsource.com");
 
 //const FormData = require("form-data");
 // Problems with FormData:
