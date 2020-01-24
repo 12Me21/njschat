@@ -1,5 +1,6 @@
 const G = exports;
 var Blessed = require("blessed");
+var Fs = require("fs");
 var C = require("./c.js");
 const Room = require("./room.js");
 var S;
@@ -55,9 +56,16 @@ Room.prototype.makeBox = function(){
 exports.loadConfig = loadConfig;
 
 function loadConfig(){
-	console.log("reloading config file ...");// WHY THE FUCK DOESN"T THIS PRINT AAA
-	delete require.cache[require.resolve("./config.js")];
-	S = require("./config.js");
+	console.log("reloading config file ...");
+	try {
+		delete require.cache[require.resolve("./config.js")];
+		var s = require("./config.js");
+		S = s;
+	} catch(e) {
+		console.error("error loading config file:");
+		console.error(e);
+		return;
+	}
 	Room.prototype.tabLabel = S.roomTabLabel;
 	Room.prototype.style = S.roomStyle;
 	Room.scrollbarStyle = S.scrollbarStyle;
@@ -76,6 +84,9 @@ Room.drawList = function(text) {
 }
 
 loadConfig(); //do this pretty soon
+Fs.watch("./config.js", function(){
+	loadConfig()
+})
 
 exports.switchRoom = function(d) {
 	var i = Room.list.findIndex(x=>x===Room.current);
