@@ -8,8 +8,8 @@
 	"dependencies": {
 		"blessed": "*",
 		"isomorphic-ws": "*",
-		"request": "^2.88.0",
-		"ws": "*"
+		"ws": "*",
+		"request": "^2.88.0"
 	},
 	"license": "WTFPL"
 }
