@@ -9,7 +9,8 @@ class Room {
 	last = null; // last sender, if last message was normal
 	lastUser = null; // last sender, always
 	unread = false;
-
+	users = null; // list of users, for pm rooms
+	
 	constructor(name, users) {
 		if (typeof name != "string") {
 			users = name.users;
