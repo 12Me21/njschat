@@ -53,6 +53,13 @@ Room.prototype.makeBox = function(){
 	});
 };
 
+var lastUserlist = [];
+exports.updateUserlist = function(newUserlist = lastUserlist){
+	lastUserlist = newUserlist;
+	userlist.setContent(lastUserlist.map(S.formatUsername).join(" "));
+	screen.render();
+}
+
 exports.loadConfig = loadConfig;
 
 function loadConfig(){
@@ -74,6 +81,7 @@ function loadConfig(){
 	divider.style = S.dividerStyle;
 	roomlist.style = S.roomlistStyle;
 	userlist.style = S.userlistStyle;
+	G.updateUserlist();
 	screen.render();
 	console.log("ok");
 }
@@ -133,13 +141,6 @@ G.Room = Room;
 exports.onUnload = function(){
 	screen.leave();
 	screen.destroy();
-}
-
-var lastUserlist = [];
-exports.updateUserlist = function(newUserlist = lastUserlist){
-	lastUserlist = newUserlist;
-	userlist.setContent(lastUserlist.map(S.formatUsername).join(" "));
-	screen.render();
 }
 
 // print text to pane

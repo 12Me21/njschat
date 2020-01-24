@@ -99,7 +99,18 @@ Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
 	var {uid: useruid, username: username} = user;
 	_auth = auth;
 	polyChat.session = session;
-	polyChat.start(useruid, auth, PolyChat.ForceXHR);
+	if (process.argv[2]) {
+		try {
+			var url = new URL(process.argv[2]); // throws if invalid
+			polyChat.webSocketURL = process.argv[2];
+			console.log("Using custom websocket url: "+polyChat.webSocketURL);
+		} catch(e) {
+			
+		}
+	}
+	polyChat.start(useruid, auth, process.argv[2]=='-p'?PolyChat.ForceXHR:PolyChat.ForceWebsockets);
+	if (polyChat.webSocket)
+		console.log("if chat is using websockets and fails to connect, try -p flag to use https proxy");
 	var firstMessageList = false;
 	polyChat.onMessage = function(msg){
 		switch(msg.type){
