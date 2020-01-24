@@ -1,3 +1,6 @@
+// eventually I'm just going to have to completely rewrite the keyboard
+// input handling
+
 module.exports = function(G, input){
 	input.key("C-c", function(ch, key) {
 		return process.exit(0);
@@ -20,7 +23,7 @@ module.exports = function(G, input){
 	input.key("right", function(ch, key) {
 		G.switchRoom(1);
 	});
-	/*input.key("C-x", function(ch, key) {
-		reload();
-	});*/
+	input.key("C-r", function(ch, key) {
+		G.loadConfig();
+	});
 }

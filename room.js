@@ -4,8 +4,12 @@ class Room {
 	static drawList = null; // function to update list graphics
 	static list = []; // list of all rooms
 	static current; // current room
-	makeBox(){}; // function to make new list element
+	static scrollbarStyle = null;
 	
+	makeBox() {}; // function to make new list element
+	tabLabel() {}; // format room name for tab label
+	//style() {};
+
 	last = null; // last sender, if last message was normal
 	lastUser = null; // last sender, always
 	unread = false;
@@ -20,7 +24,19 @@ class Room {
 		this.users = users;
 		this.box = this.makeBox();
 	};
-		
+	
+	static updateStyles() { //can this be a setter on style?
+		Room.list.forEach(room=>{
+			//console.log(room.box.style);
+			var s = room.style();
+			room.box.style.fg = s.fg;
+			room.box.style.bg = s.bg;
+			//console.log(room.box.style);
+			room.updateScrollbar();
+		});
+		//this.box.render();
+	}
+	
 	static updateList(newRooms) {
 		// add new rooms to list
 		if (newRooms)
@@ -29,27 +45,9 @@ class Room {
 			});
 		Room.drawList(Room.list.map(room=>room.tabLabel()).join(""));
 	};
-	
+
 	messageLabel() {
 		return C("["+this.name+"]");
-	};
-	
-	tabLabel() {
-		var n;
-		if (this === Room.current)
-			n = C(" "+this.name, [0,0,0], [255,255,255]);
-		else
-			n = C(" "+this.name, [0,0,0]);
-		
-		if (this.unread)
-			n += C("!", [255,255,255], [255,0,192]);
-		else {
-			if (this === Room.current)
-				n += C(" ", [0,0,0], [255,255,255]);
-			else
-				n += C(" ", [0,0,0]);
-		}
-		return n;
 	};
 
 	add() {
@@ -60,7 +58,7 @@ class Room {
 				this.show();
 		}
 	};
-
+	
 	show() {
 		if (Room.current)
 			Room.current.box.hide();
@@ -70,24 +68,26 @@ class Room {
 			Room.current.unread = false;
 		Room.updateList();
 	};
-
+	
 	atBottom() {
 		return this.box.getScroll() >= this.box.getScrollHeight()-this.box.height;
 	};
-
+	
 	updateScrollbar() {
 		if (this.atBottom()){
 			if (this===Room.current) {
 				this.unread = false;
 				Room.updateList();
 			}
-			this.box.scrollbar.style.bg = "#00FF00";
+			this.box.scrollbar.style.bg = Room.scrollbarStyle[1].fg
+			this.box.scrollbar.track.bg = Room.scrollbarStyle[1].bg
 		} else {
-			this.box.scrollbar.style.bg = "#FF0000";
+			this.box.scrollbar.style.bg = Room.scrollbarStyle[0].fg
+			this.box.scrollbar.track.bg = Room.scrollbarStyle[0].bg
 		}
 		this.box.render();
 	};
-
+	
 	print(text) {
 		var scroll = this.atBottom();
 		this.last = null;

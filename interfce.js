@@ -9,8 +9,8 @@ exports.onUnload = function(){
 exports.setInputHandler = G.setInputHandler;
 
 exports.onLoad = function(state, submit, fakeStdout){
-	fakeStdout.callback = G.log;
 	G.onLoad(I, state);
+	fakeStdout.callback = G.log;
 	//G.setInputHandler();
 	console.error("hello!");
 }

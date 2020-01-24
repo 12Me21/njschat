@@ -2,6 +2,7 @@ const G = exports;
 var Blessed = require("blessed");
 var C = require("./c.js");
 const Room = require("./room.js");
+var S;
 
 var screen = Blessed.screen({
 	smartCSR: true,
@@ -21,29 +22,18 @@ var divider = Blessed.box({
 	parent: screen,
 	bottom: input.height,
 	height: 1,
-	style: {
-		fg: "#FFFFFF",
-		bg: "#00C8B4",
-	},
 });
 
 var roomlist = Blessed.box({
 	parent: screen,
 	top: 0,
 	height: 1,
-	style: {
-		bg: "#4090E0",
-	}
 });
 
 var userlist = Blessed.box({
 	parent: screen,
 	top: roomlist.height,
 	height: 1,
-	style: {
-		bg: "#000000",
-		fg: "#FFFFFF",
-	}
 });
 
 Room.prototype.makeBox = function(){
@@ -54,17 +44,38 @@ Room.prototype.makeBox = function(){
 		keys: true,
 		alwaysScroll: true,
 		hidden: true,
+		style: this.style(),
 		scrollbar: {
-			style:{bg: "#FF0000"},
+			style:{bg: "#FF0000"}, //placeholder
 			track:{bg: "#C0C0C0"},
 		},
 	});
 };
 
+exports.loadConfig = loadConfig;
+
+function loadConfig(){
+	console.log("reloading config file ...");// WHY THE FUCK DOESN"T THIS PRINT AAA
+	delete require.cache[require.resolve("./config.js")];
+	S = require("./config.js");
+	Room.prototype.tabLabel = S.roomTabLabel;
+	Room.prototype.style = S.roomStyle;
+	Room.scrollbarStyle = S.scrollbarStyle;
+	Room.updateStyles();
+	input.style = S.inputStyle;
+	divider.style = S.dividerStyle;
+	roomlist.style = S.roomlistStyle;
+	userlist.style = S.userlistStyle;
+	screen.render();
+	console.log("ok");
+}
+
 Room.drawList = function(text) {
 	roomlist.setContent(text);
 	screen.render();
 }
+
+loadConfig(); //do this pretty soon
 
 exports.switchRoom = function(d) {
 	var i = Room.list.findIndex(x=>x===Room.current);
@@ -113,19 +124,10 @@ exports.onUnload = function(){
 	screen.destroy();
 }
 
-function formatUsername(user){
-	var color = [255,255,255];
-	if (user.banned)
-		color = [255,0,0];
-	if (!user.active)
-		color = [160,160,160];
-	return C(user.username, color);
-}
-
 var lastUserlist = [];
 exports.updateUserlist = function(newUserlist = lastUserlist){
 	lastUserlist = newUserlist;
-	userlist.setContent(lastUserlist.map(formatUsername).join(" "));
+	userlist.setContent(lastUserlist.map(S.formatUsername).join(" "));
 	screen.render();
 }
 
@@ -146,7 +148,7 @@ function print(text, roomName, fuck) {
 			Room.updateList();
 		}
 		if (roomName != "console") {
-			Room.list.any.print(room.messageLabel()+text);
+			Room.list.any.print(indent(text, room.messageLabel()));
 		}
 	}
 }
@@ -155,7 +157,7 @@ exports.scrollCurrent = function(amount, page) {
 	if (page)
 		amount *= Room.current.box.height-2;
 	Room.current.box.scroll(amount);
-	divider.setText(""+Room.current.box.childBase+" "+Room.current.box.childOffset+" "+Room.current.box.getScrollHeight()+" "+Room.current.box.getScroll());
+	//divider.setText(""+Room.current.box.childBase+" "+Room.current.box.childOffset+" "+Room.current.box.getScrollHeight()+" "+Room.current.box.getScroll());
 	Room.current.updateScrollbar();
 	screen.render();
 }
@@ -173,7 +175,7 @@ exports.message = function(text, roomName, {username: username = null} = {}){
 	if (room && room.last != username) {
 		if (room.lastUser != username)
 			print("", roomName);
-		print("  "+C(username,undefined,[192,129,192]), roomName);
+		print("  "+S.formatMessageUsername(username), roomName);
 	}
 	print(C(indent(text,"   ")), roomName)
 	room.last = username;
@@ -194,19 +196,18 @@ exports.moduleMessage = function (text, roomName, {username: username = null} = 
 	var room = Room.list[roomName];
 	if (room.lastUser != username)
 		print("", roomName);
+	// highlight names in /me messages
 	if (username && text.substr(0,username.length+1) == username+" ") {
-		print(C(username,undefined,[255,200,255])+C(text.substr(username.length),[64,64,64]), roomName);
+		print(S.formatModuleUsername(username)+C(text.substr(username.length),[64,64,64]), roomName);
 	} else {
 		print(C(text,[64,64,64]), roomName);
 	}
 	room.lastUser = username;
 }
 
-
 /*screen.key("C-c", function(ch, key) {
 	return process.exit(0);
 });*/
-
 
 // prompt input from input box
 // awaitma balls
