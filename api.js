@@ -6,7 +6,7 @@ window.TERMINAL = true;
 global.firstMessageListReceived = false;
 
 global.btoa = function(string){
-	return Buffer.from(String(string), "binary").toString("base64");
+	
 }
 
 global.startChatConnection = function(){};
@@ -180,46 +180,9 @@ global.getOrDefault = function(variable, defaultValue){
 	return typeof variable==='undefined' ? getOrDefault(defaultValue,false) : variable;
 }
 
-global.sendMessage = function(message,addCommand){
-	if(message.trim().length===0)
-		return;
-	var json={
-		'type':'message','text':message,'key':auth,'tag':currentTag()
-	};
-	polyChat.sendMessage(JSON.stringify(json));
-}
-
-global.setTabTag = function(tag){
-	Graphics.setNotificationStateForTag(tag, false);
-	return Graphics.switch_pane(tag);
-}
-
 global.currentTag = function(){
 	return Graphics.current_pane();
 }
-
-global.onSubmitMessage = function(message){
-	//Forget the event! People just want the textbox.
-	var handled = false;
-	
-	var eventParam = {value: message};
-	
-	for(var i = 0; i < onSubmitMessage.events.length; i++){
-		try{
-			if(onSubmitMessage.events[i](eventParam))
-				handled = true;
-		}catch(e){
-			warningMessage("Error in onsubmitmessage event\n" + e.stack);
-		}
-	}
-
-	if (!handled)
-		sendMessage(message);
-	
-	return false;
-}
-
-onSubmitMessage.events = [];
 
 global.Command = function (command, callback, description) {
 	this.command = command;
@@ -227,7 +190,7 @@ global.Command = function (command, callback, description) {
 	this.description = getOrDefault(description, "");
 }
 
-var Chatcommands = require("./commands.js");
+//var Chatcommands = require("./commands.js");
 
 global.commands = [];
 
@@ -241,7 +204,7 @@ global.quickParamParse = function(params)
 }
 
 // Load chatjs
-const Fs = require("fs");
+/*const Fs = require("fs");
 const pathJoin = require("path").join;
 var chatjsfolder = pathJoin(__dirname, "chatjs");
 Fs.readdirSync(chatjsfolder).forEach(function(file){
@@ -250,7 +213,7 @@ Fs.readdirSync(chatjsfolder).forEach(function(file){
 	} catch (e) {
 		warningMessage("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
 	}
-});
+});*/
 
 // TODO: try/catch on chatjs and other dangerous code !!!
 global.getAvatarFile = function(name, callback){

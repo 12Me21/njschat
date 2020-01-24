@@ -2,7 +2,7 @@ require("./api.js");
 require("./patch.js");
 const Graphics = require("./graphics.js");
 const Auth = require("./auth.js");
-require("./commands.js");
+//require("./commands.js");
 
 process.on('SIGINT', function() {
 	polyChat.close();
@@ -14,7 +14,36 @@ polyChat.onMessage = onMessage;
 
 var currentTab;
 
+function setTab(tab, showAll){
+	currentTab = tab;
+	Graphics.showTab(showAll ? "all" : tab);
+}
+
+global.setTab = setTab;
+
+// Send a message
+function sendMessage(text, tab) {
+	if (tab=="console") {
+		console.log(">> " + text);
+		try {
+			var result = eval(text);
+			console.log("<< " + result);
+		} catch (e) {
+			console.error(e.stack.match(/^.*/)[0]);
+		}
+	} else {
+		if (text.trim().length)
+			polyChat.sendMessage(JSON.stringify({
+				type: "message",
+				text: text,
+				key: auth,
+				tag: tab,
+			}));
+	}
+}
+
 Auth("session.txt").then(function(x){
+	console.log("heck");
 	var user;
 	[user, auth, session] = x;
 	if (auth) {
@@ -23,7 +52,12 @@ Auth("session.txt").then(function(x){
 		polyChat.session = session;
 		polyChat.start(useruid, auth, process.argv.length==3 ? PolyChat.ForceXHR : undefined);
 		startChatConnection();
-		Graphics.input.on("submit",submitMessage);
+		Graphics.input.on("submit",function(text){
+			sendMessage(text, currentTab);
+			Graphics.input.clearValue();
+			Graphics.input.readInput();
+			Graphics.render();
+		});
 		Graphics.input.readInput();
 	}
 });
@@ -78,7 +112,7 @@ function onMessage(msg) {
 				var request = {"type": "request", "request": "messageList"};
 				polyChat.sendMessage(JSON.stringify(request));
 				firstBind = false;
-				setTabTag("offtopic");
+				setTab("offtopic");
 			}
 		} else {
 			if(msg.result === false) {
@@ -97,18 +131,3 @@ function onMessage(msg) {
 	}
 }
 
-function submitMessage(text) {
-	if (currentTag()=="console") {
-		console.log(">> " + text);
-		try {
-			var result = eval(text);
-			console.log("<< " + result);
-		} catch (e) {
-			console.error(e.stack.match(/^.*/)[0]);
-		}
-	} else
-		onSubmitMessage(text);
-	Graphics.input.readInput();
-	Graphics.input.clearValue();
-	Graphics.render();
-}

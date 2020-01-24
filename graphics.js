@@ -2,6 +2,7 @@
 var S = require("./settings.js");
 var Graphics = exports
 var blessed = require("blessed");
+require("./patch.js");
 
 var screen = blessed.screen({
 	smartCSR: true,
@@ -89,18 +90,6 @@ exports.write_divider = function(text){
 	screen.render();
 }
 
-exports.switch_pane = function(name){
-	if (!messagepanes[name])
-		return false
-	messagepane.hide();
-	messagepane = messagepanes[name];
-	messagepane.show();
-	updatescrollbar();
-	exports.update_room_list(allTags);
-	screen.render();
-	return true;
-}
-
 exports.update_room_list = function(rooms) {
 	rooms = rooms || allTags;
 	roomlist.setContent(" "+rooms.map(x => {
@@ -115,7 +104,19 @@ exports.update_room_list = function(rooms) {
 	screen.render();
 }
 
-exports.switch_pane("console");
+exports.showTab = function(name) {
+	if (!messagepanes[name])
+		return false
+	messagepane.hide();
+	messagepane = messagepanes[name];
+	messagepane.show();
+	updatescrollbar();
+	exports.update_room_list(allTags);
+	screen.render();
+	return true;
+}
+
+exports.showTab("console");
 
 function draw_userlist(users){
 	var usernames=[];
@@ -142,6 +143,8 @@ function updatescrollbar(pane){
 		messagepane.scrollbar.style.bg = s.fg;
 		messagepane.scrollbar.track.bg = s.bg;
 	}
+	if (messagepane.getScrollPerc()==100)
+		unreads[pane] = false;
 }
 	
 input.key(S.keys.scroll[0], function(ch, key) {
@@ -162,10 +165,10 @@ function nextTag(offset){
 	return (i+offset+allTags.length)%allTags.length;
 }
 input.key(S.keys.room[0], function(ch, key) {
-	setTabTag(allTags[nextTag(-1)]);
+	setTab(allTags[nextTag(-1)]);
 });
 input.key(S.keys.room[1], function(ch, key) {
-	setTabTag(allTags[nextTag(1)]);
+	setTab(allTags[nextTag(1)]);
 });
 
 input.key(S.keys.scrollPage[0], function(ch, key) {
@@ -309,3 +312,4 @@ exports.printSystemMessage = function(message, tab){
 exports.printWarningMessage = function(message, tab){
 	Graphics.print(S.warningMessage(message), tab);
 }
+

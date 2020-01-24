@@ -1,7 +1,6 @@
 const Https = require("https");
 const Crypto = require("crypto");
 const Fs = require("fs");
-const Graphics = require("./graphics.js");
 
 function get(options, body, callback){
 	var req = Https.request(options, function(result){
@@ -63,9 +62,9 @@ async function session2auth(session){
 	});
 }
 
-async function get_login(){
-	var username = await Graphics.prompt("Username:");
-	var ligma = await Graphics.prompt("P\x61ssword:",true);
+async function get_login(prompt){
+	var username = await prompt("Username:");
+	var ligma = await prompt("P\x61ssword:",true);
 	var balls = Crypto.createHash("md5").update(ligma).digest("hex");
 	return [username, balls];
 }
@@ -84,11 +83,11 @@ function save_session(session, filename){
 
 // get session, either from session file or by logging in again
 // always returns a valid session if `force` is true
-async function get_session(filename, force){
+async function get_session(prompt, filename, force){
 	if (!force)
 		session = await load_session(filename);
 	while (!session) {
-		[username, passwordhash] = await get_login();
+		[username, passwordhash] = await get_login(prompt);
 		session = await login2session(username, passwordhash);
 		if (session)
 			save_session(session, filename);
@@ -98,14 +97,14 @@ async function get_session(filename, force){
 	return session;
 }
 
-module.exports = async function(filename) {
-	var session = await get_session(filename);
+module.exports = async function(prompt, filename) {
+	var session = await get_session(prompt, filename);
 	var [auth, user, errors] = await session2auth(session);
 	if (auth)
 		return [user, auth, session];
 	// something went wrong, ask user to log in again
 	// (most likely caused by the saved session expiring)
-	var session = await get_session(filename, true);
+	var session = await get_session(prompt, filename, true);
 	var [auth, user, errors] = await session2auth(session);
 	if (auth)
 		return [user, auth, session];

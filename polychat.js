@@ -10,9 +10,9 @@ const WebSocket = require("isomorphic-ws");
 const window = global;
 
 const Base64 = {
-	encode: btoa,function(string) {
+	encode: function(string) {
 		if (string !== null)
-			return btoa(string);
+			return Buffer.from(String(string), "binary").toString("base64");
 	},
 	decode: function(base64) {
 		if (string !== null)
@@ -365,4 +365,4 @@ PolyChat.DefaultProxyURL = "https://smilebasicsource.com/query/submit/chatproxy"
 
 /// More nodejs
 
-exports.PolyChat = PolyChat;
+module.exports = PolyChat;
