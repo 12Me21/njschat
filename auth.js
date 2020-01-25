@@ -1,18 +1,16 @@
 const Https = require("https");
 const Crypto = require("crypto");
-const Readline = require("readline");
 const Fs = require("fs");
-const Graphics = require("./graphics.js");
-
-const SESSION_FILE = "session.txt"
 
 function get(options, body, callback){
+	console.log("Request started (if you get stuck here it means your're not connected to the internet)")
 	var req = Https.request(options, function(result){
 		var all="";
 		result.on("data", function(data){
 			all += data.toString('utf-8');
 		});
 		result.on("end", function(){
+			console.log("Request finished")
 			callback(all);
 		});
 	});
@@ -23,6 +21,7 @@ function get(options, body, callback){
 
 // username/password -> session token
 async function login2session(username, passwordhash){
+	console.log("Getting session");
 	return await new Promise(callback => {
 		get(
 			{
@@ -47,6 +46,7 @@ async function login2session(username, passwordhash){
 
 // session token -> chat auth key
 async function session2auth(session){
+	console.log("Getting auth");
 	return await new Promise(callback => {
 		get(
 			{
@@ -58,79 +58,63 @@ async function session2auth(session){
 			function(data){
 				data=JSON.parse(data);
 				if(data.result)
-					callback([data.result, data.requester.uid, data.requester.username]);
+					callback([data.result, data.requester]);
 				else
-					callback([null, null, null, data.errors]);
+					callback([null, null, data.errors]);
 			},
 		);
 	});
 }
 
-async function get_login(){
-	Graphics.render();
-	var input = function(prompt, censor){
-		return new Promise(resolve=>{
-			Graphics.input.clearValue();
-			Graphics.write_divider(prompt);
-			Graphics.input.readInput();
-			Graphics.input.censor = !!censor;
-			function done(text){
-				Graphics.input.removeListener("submit",done);
-				Graphics.write_divider("");
-				Graphics.input.clearValue();
-				Graphics.input.censor = false;
-				resolve(text);
-			}
-			Graphics.input.on("submit",done);
-		})
-	}
-	var username = await input("Username:");
-	var ligma = await input("P\x61ssword:",true);
+async function get_login(prompt){
+	console.log("getting username/password");
+	var username = await prompt("Username:");
+	var ligma = await prompt("P\x61ssword:",true);
 	var balls = Crypto.createHash("md5").update(ligma).digest("hex");
 	return [username, balls];
 }
 
-async function load_session(){
+async function load_session(filename){
 	return new Promise(callback=>{
-		Fs.readFile(SESSION_FILE, (err, data)=>{
+		Fs.readFile(filename, (err, data)=>{
 			callback(data);
 		});
 	});
 }
 
-function save_session(session){
-	Fs.writeFile(SESSION_FILE, session, x=>x);
+function save_session(session, filename){
+	Fs.writeFile(filename, session, x=>x);
 }
 
-async function get_session(force){
+// get session, either from session file or by logging in again
+// always returns a valid session if `force` is true
+async function get_session(prompt, filename, force){
 	if (!force)
-		session = await load_session();
+		session = await load_session(filename);
 	while (!session) {
-		[username, passwordhash] = await get_login();
+		[username, passwordhash] = await get_login(prompt);
 		session = await login2session(username, passwordhash);
 		if (session)
-			save_session(session);
+			save_session(session, filename);
 		else
-			Graphics.log("Failed to log in");
+			console.error("Failed to log in, try again");
 	}
 	return session;
 }
 
-async function get_auth() {
-	var auth;
-	var session = await get_session();
-	if (session) {
-		[auth, uid, username] = await session2auth(session);
-		if (auth)
-			return [uid, auth, username, session];
-	}
-	session = await get_session(true); //something went wrong, ask user to log in again
-	if (session) {
-		[auth, uid, username] = await session2auth(session);
-		if (auth)
-			return [uid, auth, username, session];
-	}
+module.exports = async function(prompt, filename) {
+	console.log("auth.js");
+	var session = await get_session(prompt, filename);
+	var [auth, user, errors] = await session2auth(session);
+	if (auth)
+		return [user, auth, session];
+	// something went wrong, ask user to log in again
+	// (most likely caused by the saved session expiring)
+	var session = await get_session(prompt, filename, true);
+	var [auth, user, errors] = await session2auth(session);
+	if (auth)
+		return [user, auth, session];
+	// failed again
+	console.error("Failed to get auth key.");
+	return [null, null, null, errors];
 }
-
-exports.getAuth = get_auth
-//*/

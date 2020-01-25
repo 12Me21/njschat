@@ -4,7 +4,8 @@
  * This can be used with JS designed for browsers to improve reuse of code and
  * allow the use of existing libraries.
  *
- * Usage: include("XMLHttpRequest.js") and use XMLHttpRequest per W3C specs.
+ * Usage: XMLHttpRequest = require("XMLHttpRequest.js")(defaultHost)
+ * , and use XMLHttpRequest per W3C specs.
  *
  * @author Dan DeFelippi <dan@driverdan.com>
  * @contributor David Ellis <d.f.ellis@ieee.org>
@@ -21,18 +22,15 @@ const defaultHeaders = {
 };
 // Alright so user-agent was a mistake lol
 // currently it's only used for evil
-// so I just hardcoded it to the most normal value (firefox/windows 10)
+// so I just hardcoded it to something normal (firefox/windows 10)
 
-// These request methods are not allowed
 var forbiddenRequestMethods = [
 	"TRACE",
 	"TRACK",
 	"CONNECT"
 ];
 
-// These headers are not user setable.
-// The following are allowed but banned in the spec:
-// * user-agent
+// allowed but banned in the spec: user-agent
 const forbiddenRequestHeaders = [
 	"accept-charset",
 	"accept-encoding",
@@ -56,7 +54,7 @@ const forbiddenRequestHeaders = [
 	"via"
 ];
 
-exports.XMLHttpRequest = function(defaultHost){
+module.exports = function(defaultHost){
 	return function() {
 		"use strict";
 
@@ -213,7 +211,6 @@ exports.XMLHttpRequest = function(defaultHost){
 
 
 			var url = new URL(settings.url, defaultHost);
-			console.log(url.protocol);
 			var ssl = url.protocol == "https:";
 			var host = url.hostname;
 

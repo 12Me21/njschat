@@ -1,6 +1,7 @@
 /// Nodejs compatibility
 
 const WebSocket = require("isomorphic-ws");
+const XMLHttpRequest = require("./xhr.js")("https://smilebasicsource.com");
 
 //const FormData = require("form-data");
 // Problems with FormData:
@@ -10,9 +11,9 @@ const WebSocket = require("isomorphic-ws");
 const window = global;
 
 const Base64 = {
-	encode: btoa,function(string) {
+	encode: function(string) {
 		if (string !== null)
-			return btoa(string);
+			return Buffer.from(String(string), "binary").toString("base64");
 	},
 	decode: function(base64) {
 		if (string !== null)
@@ -42,8 +43,13 @@ const Requester = {
 
 //Make sure there's at least SOMETHING there. It won't log, but it won't throw
 //errors either (I think).
-if(!window.LogSystem)
-	window.LogSystem = {};
+LogSystem = {}
+LogSystem.TraceLevel = 10;
+LogSystem.DebugLevel = 20;
+LogSystem.InfoLevel = 30;
+LogSystem.WarningLevel = 40;
+LogSystem.ErrorLevel = 50;
+LogSystem.CriticalLevel = 60;
 
 //An object that allows easy interaction with the SBS chat. It will select the
 //best connection method based on your browser. Alternatively, you can force
@@ -52,7 +58,7 @@ function PolyChat(logger)
 {
 	var log = function(message, level) 
 	{ 
-		if(logger && logger.log) 
+		if(logger && logger.log && level>=LogSystem.DebugLevel)
 			logger.log(message); 
 	};
 	
@@ -360,4 +366,4 @@ PolyChat.DefaultProxyURL = "https://smilebasicsource.com/query/submit/chatproxy"
 
 /// More nodejs
 
-exports.PolyChat = PolyChat;
+module.exports = PolyChat;
