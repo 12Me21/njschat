@@ -40,13 +40,6 @@ function limit(interval, callback) {
 }
 
 class User {
-	static all = {}; //list of all users
-	static byName = {}; //all, by name
-	static lastNameRequest = 0;
-
-	requestedNickname = false;
-	nicknameCallbacks = [];
-	
 	constructor(user) {
 		var t = this;
 		// we only want one object to exist per user
@@ -68,6 +61,7 @@ class User {
 		t.avatar = user.avatar;
 		t.active = user.active;
 		t.banned = user.banned;
+		this.nicknameCallbacks = [];
 		t.getNickname();
 		return t;
 	}
@@ -134,5 +128,10 @@ class User {
 	}
 	
 }
+
+User.all = {}; //list of all users
+User.byName = {}; //all, by name
+User.lastNameRequest = 0;
+
 
 module.exports = User;

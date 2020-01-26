@@ -97,6 +97,7 @@ Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
 	var {uid: useruid, username: username} = user;
 	_auth = auth;
 	polyChat.session = session;
+	
 	var override = null;
 	if (process.argv[2] && new URL(process.argv[2])) {
 		override = process.argv[2];
