@@ -5,6 +5,7 @@ class Room {
 	static list = []; // list of all rooms
 	static current; // current room
 	static scrollbarStyle = null;
+	static formatName = null;
 	
 	makeBox() {}; // function to make new list element
 	tabLabel() {}; // format room name for tab label
@@ -14,6 +15,7 @@ class Room {
 	lastUser = null; // last sender, always
 	unread = false;
 	users = null; // list of users, for pm rooms
+	nameLines = {}; //list of lines with names on them
 	
 	constructor(name, users) {
 		if (typeof name != "string") {
@@ -25,7 +27,7 @@ class Room {
 		this.box = this.makeBox();
 	};
 	
-	static updateStyles() { //can this be a setter on style?
+	static updateStyles() {
 		Room.list.forEach(room=>{
 			//console.log(room.box.style);
 			var s = room.style();
@@ -34,9 +36,18 @@ class Room {
 			//console.log(room.box.style);
 			room.updateScrollbar();
 		});
-		//this.box.render();
 	}
-	
+
+	replaceName(line, user) {
+		var oldUser = this.nameLines[line]
+		if (!oldUser) {//uh oh
+			console.warn("failed to replace name"); //todo: more info
+			return;
+		}
+		this.box.setLine(line, "  "+user.formatMessageUsername()); //hardcoded indent :(
+		this.box.render();
+	}
+
 	static updateList(newRooms) {
 		// add new rooms to list
 		if (newRooms)

@@ -58,20 +58,33 @@ exports.userlistStyle = {
 	fg: "#FFFFFF",
 };
 
-exports.formatUsername = function(user){
-	var color = [255,255,255];
-	if (user.banned)
-		color = [255,0,0];
-	if (!user.active)
-		color = [160,160,255];
-	return C(user.username, color);
+exports.formatUsername = function(){
+	//var c = userColor(this);
+	var c = this.getColors();
+	if (this.banned)
+		c[0] = [255,0,0];
+	if (!this.active)
+		c[0] = [64,64,64];
+	return C("["+this.username+"]", ...c);
 }
 
 //this takes username now but I'll change it later I guess
-exports.formatMessageUsername = function(username){
-	return C(username,undefined,[192,129,192]);
+exports.formatMessageUsername = function(){
+	return C(this.displayName(), ...this.getColors())+":";
 }
 
-exports.formatModuleUsername = function(username){
-	return C(username,undefined,[255,200,255]);
+exports.formatModuleUsername = function(user){
+	return C(user.username, ...user.getColors());
+}
+
+function md5(text){
+	return require("crypto").createHash("md5").update(text).digest();
+}
+
+// this will be assigned to User.prototype.getColors()
+// don't call this directly from config.js, just use user.getColors()
+exports.userColors = function(){
+	var x = md5(this.username);
+	var c = [x[11],x[13],x[12]];
+	return [[255, 255, 255], c];
 }

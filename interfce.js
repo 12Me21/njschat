@@ -1,6 +1,7 @@
 require("./patch.js");
 var G = require("./screen.js");
 var I = exports;
+var User = require("./user.js");
 
 exports.onUnload = function(){
 	G.onUnload();
@@ -40,10 +41,12 @@ exports.displayMessage = function({
 		messageID: id = 0,
 		safe: safe = "unknown",
 }){
+	if (sender)
+		sender = new User(sender);
 	text = stripHTML(message);
 	switch(type){
 	case "system":
-		G.systemMessage(text, tag);
+		G.systemMessage(text, tag, sender);
 		break;
 	case "warning":
 		G.warningMessage(text, tag);
