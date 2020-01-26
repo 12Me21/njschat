@@ -1,43 +1,39 @@
 var Console = require("console").Console;
-var User = require("./user");
+var User = require("./user.js");
+const URL = require("./url.js");
 
 var Stream = require("stream");
 class StreamToString extends Stream.Writable {
-	#dat = ""
 	constructor(x, callback){
 		super(x);
 		this.callback = callback;
+		this.dat = ""
 	}
-	#callback
 	set callback(callback){
-		this.#callback = callback;
+		this._callback = callback;
 		this.tryCallback();
 	}
 	_write(chunk, enc, next){
 		if (!process.stderr.isTTY)
 			process.stderr.write(chunk);
-		this.#dat += chunk.toString();
+		this.dat += chunk.toString();
 		this.tryCallback();
 		next();
 	}
 	tryCallback() {
-		if (this.#callback) {
+		if (this._callback) {
 			// flush on newlines
-			var i = this.#dat.lastIndexOf("\n");
+			var i = this.dat.lastIndexOf("\n");
 			if (i!=-1){
-				this.#callback(this.#dat.substr(0,i+1))
-				this.#dat = this.#dat.substr(i+1);
+				this._callback(this.dat.substr(0,i+1))
+				this.dat = this.dat.substr(i+1);
 			}
 		}
 	}
 }
 
 var fakeStdout = new StreamToString();
-global.console = Console({
-	stdout: fakeStdout,
-	stderr: fakeStdout,
-	colorMode: true,
-});
+global.console = console.Console(fakeStdout, fakeStdout);
 
 var PolyChat = require("./polychat.js");
 var Auth = require("./auth.js");
@@ -104,10 +100,11 @@ Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
 	if (process.argv[2]) {
 		try {
 			var url = new URL(process.argv[2]); // throws if invalid
-			polyChat.webSocketURL = process.argv[2];
-			console.log("Using custom websocket url: "+polyChat.webSocketURL);
+			if (url.host) {
+				polyChat.webSocketURL = process.argv[2];
+				console.log("Using custom websocket url: "+polyChat.webSocketURL);
+			}
 		} catch(e) {
-			
 		}
 	}
 	polyChat.start(useruid, auth, process.argv[2]=='-p'?PolyChat.ForceXHR:PolyChat.ForceWebsockets);
