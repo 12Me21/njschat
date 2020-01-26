@@ -2,7 +2,7 @@
 function get {
 	name="${1##*/}"
 	rm -rf "$name"
-	echo -n "Installing $name ... "
+	echo -n "Installing '$name' ... "
 	git clone --depth=1 --quiet "git://$1"
 	echo "done"
 }
