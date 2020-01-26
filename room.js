@@ -5,22 +5,10 @@ function indent(message, indent){
 }
 
 class Room {
-	static drawList = null; // function to update list graphics
-	static list = []; // list of all rooms
-	static current; // current room
-	static scrollbarStyle = null;
-	static formatName = null;
-	
 	makeBox() {}; // function to make new list element
 	tabLabel() {}; // format room name for tab label
 	//style() {};
 
-	last = null; // last sender, if last message was normal
-	lastUser = null; // last sender, always
-	unread = false;
-	users = null; // list of users, for pm rooms
-	nameLines = {}; //list of lines with names on them
-	
 	constructor(name, users) {
 		if (typeof name != "string") {
 			users = name.users;
@@ -127,5 +115,11 @@ class Room {
 		}
 	};
 }
+
+Room.drawList = null; // function to update list graphics
+Room.list = []; // list of all rooms
+Room.current; // current room
+Room.scrollbarStyle = null;
+Room.formatName = null;
 
 module.exports = Room;
