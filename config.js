@@ -1,16 +1,5 @@
 const C = require("./c.js");
 
-var userColors = {
-	"286": [[45,234,63],[129,152,43]],
-};
-
-function userColor(user){
-	var x = userColors[user.uid]
-	if (x)
-		return x.slice();
-	return [[255,255,255],[128,128,128]];
-}
-
 exports.stack = [ //unused currently
 	["roomlist", 1],
 	["userlist", 1],
@@ -92,11 +81,10 @@ function md5(text){
 	return require("crypto").createHash("md5").update(text).digest();
 }
 
+// this will be assigned to User.prototype.getColors()
+// don't call this directly from config.js, just use user.getColors()
 exports.userColors = function(){
 	var x = md5(this.username);
 	var c = [x[11],x[13],x[12]];
 	return [[255, 255, 255], c];
 }
-
-// todo: way to replace usernames/colors on old messages?
-// - insert nicknames after message posted
