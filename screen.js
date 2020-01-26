@@ -3,6 +3,7 @@ var Blessed = require("blessed");
 var Fs = require("fs");
 var C = require("./c.js");
 const Room = require("./room.js");
+const User = require("./user.js");
 var S;
 
 var screen = Blessed.screen({
@@ -56,13 +57,15 @@ Room.prototype.makeBox = function(){
 var lastUserlist = [];
 exports.updateUserlist = function(newUserlist = lastUserlist){
 	lastUserlist = newUserlist;
-	userlist.setContent(lastUserlist.map(S.formatUsername).join(" "));
+	userlist.setContent(lastUserlist.map(user=>user.formatUsername()).join(" "));
 	screen.render();
 }
 
 exports.loadConfig = loadConfig;
 
 function loadConfig(){
+	// todo: validate functions in config so they don't
+	// crash chat if they throw errors or return invalid data
 	console.log("reloading config file ...");
 	try {
 		delete require.cache[require.resolve("./config.js")];
@@ -75,6 +78,9 @@ function loadConfig(){
 	}
 	Room.prototype.tabLabel = S.roomTabLabel;
 	Room.prototype.style = S.roomStyle;
+	User.prototype.formatMessageUsername = S.formatMessageUsername;
+	User.prototype.formatUsername = S.formatUsername;
+	User.prototype.getColors = S.userColors;
 	Room.scrollbarStyle = S.scrollbarStyle;
 	Room.updateStyles();
 	input.style = S.inputStyle;
@@ -145,7 +151,17 @@ exports.onUnload = function(){
 
 // print text to pane
 // text should be already formatted. there's no going back at this point
-function print(text, roomName, fuck) {
+function print(text, roomName, replaceThisLine) {
+	// TODO:
+	// replaceThisLine should be a function that, when called, will
+	// call its first argument, passing the new contents of that line
+	// so, for example,
+	// when printing a username that needs to be replaced with a nickname later, you would pass like
+	/*function(callback){
+		user.getNickname(function(){
+			callback("  "+user.formatMessageName());
+		});
+	}*/
 	text = text.replace(/\n+$/,""); //trim trailing newlines
 	var room = Room.list[roomName];
 	if (roomName=="any"){
@@ -182,14 +198,30 @@ function indent(message, indent){
 	return indent+message.replace(/\n/g,"\n"+indent);
 }
 
-exports.message = function(text, roomName, {username: username = null} = {}){
+// do > formatting and whatever
+function format(message){
+	if (message[0]==">") { //n
+		return C(message, [0,192,0]);
+	}
+	return C(message);
+}
+
+var namelines = [];
+
+exports.message = function(text, roomName, user){
 	var room = Room.list[roomName];
-	if (room && room.last != username) {
+	var username = user ? user.username : null;
+	if (room && !(username && room.last == username)) {
 		if (room.lastUser != username)
 			print("", roomName);
-		print("  "+S.formatMessageUsername(username), roomName);
+		room.nameLines[room.box.lineCount()] = user;
+		var lines = room.box.lineCount();
+		print("  "+user.formatMessageUsername(), roomName);
+		user.getNickname(function(user){
+			room.replaceName(lines, user);
+		})
 	}
-	print(C(indent(text,"   ")), roomName)
+	print(indent(format(text),"   "), roomName);
 	room.last = username;
 	room.lastUser = username;
 }
@@ -204,17 +236,23 @@ exports.warningMessage = function (text, room) {
 	print(C(text,[192,64,64]), room);
 }
 
-exports.moduleMessage = function (text, roomName, {username: username = null} = {}) {
+exports.systemMessage = exports.moduleMessage = function (text, roomName, user) {
 	var room = Room.list[roomName];
-	if (room.lastUser != username)
+	var username = user ? user.username : null;
+	if (username && room.lastUser != username)
 		print("", roomName);
 	// highlight names in /me messages
 	if (username && text.substr(0,username.length+1) == username+" ") {
-		print(S.formatModuleUsername(username)+C(text.substr(username.length),[64,64,64]), roomName);
+		print(S.formatModuleUsername(user)+C(text.substr(username.length),[64,64,64]), roomName);
 	} else {
 		print(C(text,[64,64,64]), roomName);
 	}
 	room.lastUser = username;
+	//alright so it's very unlikely, but...
+	// technically someone could post a message, then have their name changed
+	// and then another person's name could be changed to their old name,
+	// and then if that person posts a message next, it'll be merged when it
+	// shouldn't...
 }
 
 /*screen.key("C-c", function(ch, key) {

@@ -1,4 +1,5 @@
 var Console = require("console").Console;
+var User = require("./user");
 
 var Stream = require("stream");
 class StreamToString extends Stream.Writable {
@@ -21,6 +22,7 @@ class StreamToString extends Stream.Writable {
 	}
 	tryCallback() {
 		if (this.#callback) {
+			// flush on newlines
 			var i = this.#dat.lastIndexOf("\n");
 			if (i!=-1){
 				this.#callback(this.#dat.substr(0,i+1))
@@ -116,7 +118,7 @@ Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
 		switch(msg.type){
 		case "userList":
 			state.rooms = defaultRooms.concat(msg.rooms);
-			state.users = msg.users;
+			state.users = msg.users.map(user=>new User(user));
 			I.updateUserlist(state.users);
 			I.updateRoomlist(state.rooms);
 			break;

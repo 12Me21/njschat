@@ -34,3 +34,10 @@ Screen.prototype.readEditor = function(){};
 
 var ScrollableBox = require("blessed/lib/widgets/scrollablebox");
 ScrollableBox.prototype.getScroll = function(){return this.childBase;};
+
+var Element = require("blessed/lib/widgets/element");
+Element.prototype.lineCount = function(){
+	if (!this.content)
+		return 0;
+	return this._clines.fake.length;
+};
