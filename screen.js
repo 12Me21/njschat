@@ -167,16 +167,16 @@ function print(text, roomName, replaceThisLine) {
 	if (roomName=="any"){
 		Room.list.forEach(room=>{
 			if (room.name != "console")
-				room.print(text);
+				room.print(text, replaceThisLine);
 		});
 	} else if (room) { //should always happen then
-		room.print(text);
+		room.print(text, replaceThisLine);
 		if (room !== Room.current) {
 			room.unread = true;
 			Room.updateList();
 		}
 		if (roomName != "console") {
-			Room.list.any.print(indent(text, room.messageLabel()));
+			Room.list.any.print(text, replaceThisLine, room.messageLabel());
 		}
 	}
 }
@@ -214,16 +214,22 @@ exports.message = function(text, roomName, user){
 	if (room && !(username && room.last == username)) {
 		if (room.lastUser != username)
 			print("", roomName);
-		room.nameLines[room.box.lineCount()] = user;
 		var lines = room.box.lineCount();
-		print("  "+user.formatMessageUsername(), roomName);
-		user.getNickname(function(user){
-			room.replaceName(lines, user);
-		})
+		var later;
+		if (user.nickname === undefined)
+			later = function(callback){
+				user.getNickname(callback);
+			};
+		print("  "+user.formatMessageUsername(), roomName, later);
 	}
 	print(indent(format(text),"   "), roomName);
 	room.last = username;
 	room.lastUser = username;
+}
+
+exports.drawing = function(text, roomName, user){
+	//definitely at least like, show the color pallete or something
+	exports.message("[drawing]", roomName, user);
 }
 
 exports.systemMessage = function (text, room) {

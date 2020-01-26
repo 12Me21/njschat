@@ -1,5 +1,9 @@
 const C = require("./c.js");
 
+function indent(message, indent){
+	return indent+message.replace(/\n/g,"\n"+indent);
+}
+
 class Room {
 	static drawList = null; // function to update list graphics
 	static list = []; // list of all rooms
@@ -38,13 +42,16 @@ class Room {
 		});
 	}
 
-	replaceName(line, user) {
-		var oldUser = this.nameLines[line]
-		if (!oldUser) {//uh oh
-			console.warn("failed to replace name"); //todo: more info
-			return;
-		}
-		this.box.setLine(line, "  "+user.formatMessageUsername()); //hardcoded indent :(
+	replaceName(line, user, prefix) {
+		//var oldUser = this.nameLines[line]
+		//if (!oldUser) {//uh oh
+	//		console.warn("failed to replace name"); //todo: more info
+	//		return;
+		//	}
+		var text = "  "+user.formatMessageUsername(); //hardcoded indent :(
+		if (prefix)
+			text += " "+prefix;
+		this.box.setLine(line, text);
 		this.box.render();
 	}
 
@@ -58,7 +65,7 @@ class Room {
 	};
 
 	messageLabel() {
-		return C("["+this.name+"]");
+		return C("["+this.name+"]",[128,128,128]);
 	};
 
 	add() {
@@ -99,16 +106,25 @@ class Room {
 		this.box.render();
 	};
 	
-	print(text) {
+	print(text, replaceLater, prefix) {
 		var scroll = this.atBottom();
 		this.last = null;
 		this.lastUser = null;
 		var pane = this.box;
+		var line = pane.lineCount();
 		pane.pushLine(text);
 		if (scroll)
 			pane.setScrollPerc(100);
 		this.updateScrollbar();
 		this.box.render();
+		if (prefix)
+			text = indent(text, prefix);
+		if (replaceLater) {
+			//this.nameLines[line] = user;
+			replaceLater((user)=>{
+				this.replaceName(line, user, prefix);
+			});
+		}
 	};
 }
 
