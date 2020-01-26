@@ -1,4 +1,28 @@
-var Request = require("request");
+const Http = require("http");
+
+// todo: make our own requests library
+// node request library is fucking HUGE and has 50 dependancies :(
+// use URL to parse and then http/https
+// see: xhr.js
+
+function get(options, callback){
+	var req = Http.request(options, function(result){
+		var all="";
+		result.on("data", function(data){
+			all += data.toString('utf-8');
+		});
+		result.on("end", function(){
+			console.log("Request finished")
+			callback(all);
+		});
+		result.on("error", function(e){
+			console.error("http request error");
+			console.error(e);
+			callback(null);
+		});
+	});
+	req.end();
+}
 
 // user!
 
@@ -81,18 +105,20 @@ class User {
 						});
 					} else {
 						console.log("requesting nickname for "+this.username);
-						Request("http://smilebasicsource.com/query/tinycomputerprograms?username="+this.username+"&program=nickname", (error, response, body)=>{
-							if (response && response.statusCode == 200) {
-								var nickname = unescape(body);
-								if (nickname >= " " && nickname != "\r\n") {
-									this.nickname = nickname;
-									this.nicknameCallbacks.forEach(x=>{
-										if (x)
-											x(this);
-									});
-								} else {
-									this.nickname = false;
-								}
+						get({
+							hostname: "smilebasicsource.com",
+							path: "/query/tinycomputerprograms?username="+this.username+"&program=nickname",
+							method: "GET",
+						}, (body)=>{
+							var nickname = unescape(body);
+							if (nickname >= " " && nickname != "\r\n") {
+								this.nickname = nickname;
+								this.nicknameCallbacks.forEach(x=>{
+									if (x)
+										x(this);
+								});
+							} else {
+								this.nickname = false;
 							}
 						});
 					}

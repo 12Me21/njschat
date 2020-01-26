@@ -86,5 +86,7 @@ function md5(text){
 exports.userColors = function(){
 	var x = md5(this.username);
 	var c = [x[11],x[13],x[12]];
+	if (c[0]+c[1]+c[2] > 100*3)
+		return [[0, 0, 0], c];
 	return [[255, 255, 255], c];
 }

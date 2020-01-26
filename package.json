@@ -1,6 +1,6 @@
 {
 	"description": "null",
-	"main": "main.js",
+	"main": "core.js",
 	"repository": {
 		"type": "git",
 		"url": "https://github.io/12Me21/njschat.git"
@@ -8,8 +8,7 @@
 	"dependencies": {
 		"blessed": "*",
 		"isomorphic-ws": "*",
-		"ws": "*",
-		"request": "^2.88.0"
+		"ws": "*"
 	},
 	"license": "WTFPL"
 }

@@ -30,7 +30,8 @@ function stripHTML(string){
 		.replace(/&amp;/g,"&");
 }
 
-exports.displayMessage = function({
+exports.displayMessage = function(messageData){
+	var {
 		message: message = "",
 		type: type = "",
 		tag: tag = "any",
@@ -40,7 +41,8 @@ exports.displayMessage = function({
 		module: module = "",
 		messageID: id = 0,
 		safe: safe = "unknown",
-}){
+	} = messageData;
+	
 	if (sender)
 		sender = new User(sender);
 	text = stripHTML(message);
@@ -55,7 +57,10 @@ exports.displayMessage = function({
 		G.moduleMessage(text, tag, sender);
 		break;
 	case "message":
-		G.message(text, tag, sender);
+		if (messageData.encoding == "draw")
+			G.drawing(text, tag, sender);
+		else
+			G.message(text, tag, sender);
 		break;
 	default:
 		I.log("unknown message type: "+type);
