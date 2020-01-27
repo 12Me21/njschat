@@ -41,7 +41,7 @@ async function load_session(filename){
 }
 
 function save_session(session, filename){
-	Fs.writeFile(filename, session);
+	Fs.writeFile(filename, session, ()=>{});
 }
 
 // get session, either from session file or by logging in again
