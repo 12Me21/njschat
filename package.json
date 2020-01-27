@@ -1,0 +1,12 @@
+{
+	"name": "njschat",
+	"main": "main.js",
+	"description": "terminal sbs chat client",
+	"repository": "github:12Me21/njschat",
+	"license": "WTFPL",
+	"dependencies": {
+		"ws": "*",
+		"blessed": "*",
+		"axios": "*"
+	}
+}

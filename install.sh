@@ -11,4 +11,9 @@ cd node_modules || exit
 
 get github.com/chjj/blessed
 get github.com/websockets/ws
-get github.com/heineiuo/isomorphic-ws
+get github.com/axios/axios
+get github.com/follow-redirects/follow-redirects
+
+mkdir -p debug
+echo '{"name":"debug","main":"m.js"}' > debug/package.json
+echo 'module.exports=_=>_=>_' > debug/m.js
