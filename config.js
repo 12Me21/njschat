@@ -1,6 +1,6 @@
 const C = require("./c.js");
 
-//exports.websocketUrl = "ws://127.0.0.1:8765";
+exports.websocketUrl = "ws://127.0.0.1:8765";
 
 exports.stack = [ //unused currently
 	["roomlist", 1],
@@ -92,3 +92,5 @@ exports.userColors = function(){
 		return [[0, 0, 0], c];
 	return [[255, 255, 255], c];
 }
+
+

@@ -211,6 +211,10 @@ var namelines = [];
 exports.message = function(text, roomName, user){
 	var room = Room.list[roomName];
 	var username = user ? user.username : null;
+	// alright all this needs to be handled better
+	// a nice thing would be like
+	// to handle most of this in Room
+	// too tire dto expliang/..
 	if (room && !(username && room.last == username)) {
 		if (room.lastUser != username)
 			print("", roomName);
@@ -227,9 +231,13 @@ exports.message = function(text, roomName, user){
 	room.lastUser = username;
 }
 
-exports.drawing = function(text, roomName, user){
+exports.drawingMessage = function(text, roomName, user){
 	//definitely at least like, show the color pallete or something
 	exports.message("[drawing]", roomName, user);
+}
+
+exports.imageMessage = function(text, roomName, user){
+	exports.message(text, roomName, user);
 }
 
 exports.systemMessage = function (text, room) {

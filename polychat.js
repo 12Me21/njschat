@@ -1,13 +1,17 @@
 /// Nodejs compatibility
 
-const WebSocket = require("isomorphic-ws");
-const XMLHttpRequest = require("./xhr.js")("https://smilebasicsource.com");
+const WebSocket = require("ws");
+const Axios = require("axios");
 
-//const FormData = require("form-data");
-// Problems with FormData:
-// - isn't supported by nodejs XMLHttpRequest library
-// - form.submit(url) also doesn't seem to work
-// luckily FormData isn't required by polychat, but it would be nicer
+function simpleFormdata(name, data) {
+	var boundary = "534324312421";
+	return [
+		"--"+boundary+'\r\nContent-Disposition: form-data; name="'+name+'"\r\n\r\n'+
+			data+"\r\n--"+boundary+"--",
+		{headers: {"Content-Type":"multipart/form-data; boundary="+boundary}},
+	];
+}
+
 const window = global;
 
 const Base64 = {
@@ -18,24 +22,6 @@ const Base64 = {
 	decode: function(base64) {
 		if (string !== null)
 			return Buffer.from(base64, "base64").toString("binary");
-	}
-}
-const Requester = {
-	respondToJSON: function(myCallback, myError){
-		return function(response){
-			if(myCallback && response){
-				var parsedJSON=false;
-				try{
-					parsedJSON=JSON.parse(response);
-				}catch(ex){
-					if(myError){
-						myError("Could not parse json in Requester.respondToJSON! Exception: "+ex+", Response: "+response);
-					}
-				}
-				if(parsedJSON)
-					myCallback(parsedJSON);
-			}
-		};
 	}
 }
 
@@ -201,27 +187,22 @@ function PolyChat(logger)
 			
 			myself.xhr = function(jsonMessage, callback)
 			{
-				var xhr = new XMLHttpRequest();
-				xhr.onreadystatechange = function()
-				{
-					if(xhr.readyState === 4)
-						Requester.respondToJSON(callback, doOnError)(xhr.responseText);
-				};
-
-				//Formdata is better because we don't have to base64 encode it in
-				//the URL (which limits the size of messages)
-				if(window.FormData)
-				{
-					log("formdata exists :)")
-					xhr.open("POST", myself.proxyURL + "?session=" + myself.session);
-					var data = new FormData();
-					data.append("data", jsonMessage);
-					xhr.send(data);
-				}
-				else
-				{
-					xhr.open("GET", myself.proxyURL + "?session=" + myself.session + "&b64Data=" + Base64.encode(jsonMessage));
-					xhr.send();
+				// It's better to use formdata, but
+				// just in case my formdata function breaks, you can disable that
+				// and use double base64 instead
+				if (simpleFormdata) {
+					Axios.post(
+						myself.proxyURL + "?session=" + myself.session,
+						...simpleFormdata("data", jsonMessage)
+					).then(response=>{
+						if (callback)
+							callback(response.data);
+					});
+				} else {
+					Axios.get(myself.proxyURL + "?session=" + myself.session + "&b64Data=" + Base64.encode(jsonMessage)).then(response=>{
+						if (callback)
+							callback(response.data);
+					});
 				}
 			};
 		}
@@ -308,11 +289,6 @@ function PolyChat(logger)
 			parts.encoding = "base64";
 			jsonMessage = JSON.stringify(parts);
 			myself.xhr(jsonMessage, callback);
-		}
-		else
-		{
-			var jsonCompletion = Requester.respondToJSON(callback, doOnError);
-			myself.requester.sendGet(myself.proxyURL + "?session=" + myself.session + "&b64Data=" + Base64.encode(jsonMessage), jsonCompletion);
 		}
 	};
 

@@ -1,69 +1,27 @@
-const Https = require("https");
 const Crypto = require("crypto");
 const Fs = require("fs");
-
-function get(options, body, callback){
-	console.log("Request started (if you get stuck here it means your're not connected to the internet)")
-	var req = Https.request(options, function(result){
-		var all="";
-		result.on("data", function(data){
-			all += data.toString('utf-8');
-		});
-		result.on("end", function(){
-			console.log("Request finished")
-			callback(all);
-		});
-	});
-	if (body !== null)
-		req.write(body);
-	req.end();
-}
+const Axios = require("axios");
 
 // username/password -> session token
 async function login2session(username, passwordhash){
-	console.log("Getting session");
-	return await new Promise(callback => {
-		get(
-			{
-				hostname: "smilebasicsource.com",
-				path: "/query/submit/login?session=x&small=1",
-				method: "POST",
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded',
-				},
-			},
-			"username="+username+"&password="+passwordhash,
-			function(data){
-				data=JSON.parse(data);
-				if(data.result)
-					callback(data.result);
-				else
-					callback(null, data.errors);
-			},
-		);
-	});
+	var response = await Axios.post(
+		"https://smilebasicsource.com/query/submit/login?session=x&small=1",
+		"username="+username+"&password="+passwordhash,
+		{headers: {"Content-Type":"application/x-www-form-urlencoded"}},
+	)
+	var data = response.data;
+	return data.result;
 }
 
 // session token -> chat auth key
 async function session2auth(session){
 	console.log("Getting auth");
-	return await new Promise(callback => {
-		get(
-			{
-				hostname: "smilebasicsource.com",
-				path: "/query/request/chatauth?session="+session,
-				method: "GET",
-			},
-			null,
-			function(data){
-				data=JSON.parse(data);
-				if(data.result)
-					callback([data.result, data.requester]);
-				else
-					callback([null, null, data.errors]);
-			},
-		);
-	});
+	var response = await Axios.get("https://smilebasicsource.com/query/request/chatauth?session="+session);
+	var data = response.data;
+	if (data.result)
+		return [data.result, data.requester];
+	else
+		return [null, null, data.errors];
 }
 
 async function get_login(prompt){
@@ -83,7 +41,7 @@ async function load_session(filename){
 }
 
 function save_session(session, filename){
-	Fs.writeFile(filename, session, x=>x);
+	Fs.writeFile(filename, session);
 }
 
 // get session, either from session file or by logging in again

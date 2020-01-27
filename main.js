@@ -138,7 +138,7 @@ Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
 					polyChat.sendMessage(JSON.stringify({
 						type:"request", request:"messageList"
 					}));
-					I.onBind();
+					// BIND DONE!
 				}
 			} else {
 				if (!msg.result) {

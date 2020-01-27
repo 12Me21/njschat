@@ -7,6 +7,8 @@ exports.onUnload = function(){
 	G.onUnload();
 }
 
+var commands = [];
+
 exports.setInputHandler = G.setInputHandler;
 
 exports.onLoad = function(state, submit, fakeStdout){
@@ -57,8 +59,13 @@ exports.displayMessage = function(messageData){
 		G.moduleMessage(text, tag, sender);
 		break;
 	case "message":
-		if (messageData.encoding == "draw")
-			G.drawing(text, tag, sender);
+		var encoding = messageData.encoding;
+		// so these encodings are "special"
+		if (encoding == "image")
+			G.imageMessage(text, tag, sender);
+		else if (encoding == "draw")
+			G.drawingMessage(text, tag, sender);
+		// everything else is mostly normal text
 		else
 			G.message(text, tag, sender);
 		break;
@@ -78,8 +85,6 @@ exports.displayMessage.system = function(text){
 exports.displayMessage.module = function(text){
 	exports.displayMessage({type:"module",message:text});
 }
-
-exports.onBind = function(){}
 
 exports.onConnect = x=>x;
 
