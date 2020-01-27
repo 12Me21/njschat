@@ -1,6 +1,6 @@
 const C = require("./c.js");
 
-exports.websocketUrl = "ws://127.0.0.1:8765";
+exports.websocketUrl = //"ws://127.0.0.1:8765";
 
 exports.stack = [ //unused currently
 	["roomlist", 1],
