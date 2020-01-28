@@ -35,7 +35,7 @@ class StreamToString extends Stream.Writable {
 var fakeStdout = new StreamToString();
 global.console = console.Console(fakeStdout, fakeStdout);
 
-var PolyChat = require("./polychat.js");
+var PolyChat = require("./polychat2.js");
 var Auth = require("./auth.js");
 var I;
 
@@ -109,7 +109,7 @@ Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
 		console.log("Using custom websocket url: "+polyChat.webSocketURL);
 	}
 	
-	polyChat.start(useruid, auth, process.argv[2]=='-p'?PolyChat.ForceXHR:PolyChat.ForceWebsockets);
+	polyChat.start(useruid, auth, process.argv[2]=='-p');
 	if (polyChat.webSocket)
 		console.log("if chat is using websockets and fails to connect, try -p flag to use https proxy");
 	var firstMessageList = false;

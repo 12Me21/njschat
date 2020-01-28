@@ -151,20 +151,9 @@ exports.onUnload = function(){
 
 // print text to pane
 // text should be already formatted. there's no going back at this point
-function print(text, roomName, replaceThisLine) {
-	// TODO:
-	// replaceThisLine should be a function that, when called, will
-	// call its first argument, passing the new contents of that line
-	// so, for example,
-	// when printing a username that needs to be replaced with a nickname later, you would pass like
-	/*function(callback){
-		user.getNickname(function(){
-			callback("  "+user.formatMessageName());
-		});
-	}*/
+function print(text, room, replaceThisLine) {
 	text = text.replace(/\n+$/,""); //trim trailing newlines
-	var room = Room.list[roomName];
-	if (roomName=="any"){
+	if (room.name == "any") {
 		Room.list.forEach(room=>{
 			if (room.name != "console")
 				room.print(text, replaceThisLine);
@@ -175,7 +164,7 @@ function print(text, roomName, replaceThisLine) {
 			room.unread = true;
 			Room.updateList();
 		}
-		if (roomName != "console") {
+		if (room.name != "console") {
 			Room.list.any.print(text, replaceThisLine, room.messageLabel());
 		}
 	}
@@ -191,7 +180,7 @@ exports.scrollCurrent = function(amount, page) {
 }
 
 exports.log = function(...a) {
-	print(a.join(" "), "console");
+	print(a.join(" "), new Room("console"));
 }
 
 function indent(message, indent){
@@ -208,8 +197,7 @@ function format(message){
 
 var namelines = [];
 
-exports.message = function(text, roomName, user){
-	var room = Room.list[roomName];
+exports.message = function(text, room, user){
 	var username = user ? user.username : null;
 	// alright all this needs to be handled better
 	// a nice thing would be like
@@ -217,27 +205,27 @@ exports.message = function(text, roomName, user){
 	// too tire dto expliang/..
 	if (room && !(username && room.last == username)) {
 		if (room.lastUser != username)
-			print("", roomName);
+			print("", room);
 		var lines = room.box.lineCount();
 		var later;
 		if (user.nickname === undefined)
 			later = function(callback){
 				user.getNickname(callback);
 			};
-		print("  "+user.formatMessageUsername(), roomName, later);
+		print("  "+user.formatMessageUsername(), room, later);
 	}
-	print(indent(format(text),"   "), roomName);
+	print(indent(format(text),"   "), room);
 	room.last = username;
 	room.lastUser = username;
 }
 
-exports.drawingMessage = function(text, roomName, user){
+exports.drawingMessage = function(text, room, user){
 	//definitely at least like, show the color pallete or something
-	exports.message("[drawing]", roomName, user);
+	exports.message("[drawing]", room, user);
 }
 
-exports.imageMessage = function(text, roomName, user){
-	exports.message(text, roomName, user);
+exports.imageMessage = function(text, room, user){
+	exports.message(text, room, user);
 }
 
 exports.systemMessage = function (text, room) {
@@ -250,16 +238,17 @@ exports.warningMessage = function (text, room) {
 	print(C(text,[192,64,64]), room);
 }
 
-exports.systemMessage = exports.moduleMessage = function (text, roomName, user) {
-	var room = Room.list[roomName];
+exports.systemMessage = exports.moduleMessage = function (text, room, user) {
+	// So sometimes this randomly fails when
+	// a message is posted before room exists
 	var username = user ? user.username : null;
 	if (username && room.lastUser != username)
-		print("", roomName);
+		print("", room);
 	// highlight names in /me messages
 	if (username && text.substr(0,username.length+1) == username+" ") {
-		print(S.formatModuleUsername(user)+C(text.substr(username.length),[64,64,64]), roomName);
+		print(S.formatModuleUsername(user)+C(text.substr(username.length),[64,64,64]), room);
 	} else {
-		print(C(text,[64,64,64]), roomName);
+		print(C(text,[64,64,64]), room);
 	}
 	room.lastUser = username;
 	//alright so it's very unlikely, but...

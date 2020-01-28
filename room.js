@@ -14,9 +14,22 @@ class Room {
 			users = name.users;
 			name = name.name;
 		}
-		this.name = name;
-		this.users = users;
-		this.box = this.makeBox();
+		var t = this;
+		
+		if (Room.list[name]) {
+			t = Room.list[name];
+		} else { //new room
+			t.name = name;
+			t.box = t.makeBox();
+			Room.list.push(t);
+			Room.list[name] = t;
+			if (!Room.current)
+				t.show();
+			// maybe this should update the room list
+		}
+		if (users)
+			t.users = users;
+		return t;
 	};
 	
 	static updateStyles() {
@@ -47,22 +60,13 @@ class Room {
 		// add new rooms to list
 		if (newRooms)
 			newRooms.forEach(room=>{
-				new Room(room).add();
+				new Room(room);
 			});
 		Room.drawList(Room.list.map(room=>room.tabLabel()).join(""));
 	};
 
 	messageLabel() {
 		return C("["+this.name+"]",[128,128,128]);
-	};
-
-	add() {
-		if (!Room.list[this.name]) {
-			Room.list.push(this);
-			Room.list[this.name]=this;
-			if (!Room.current)
-				this.show();
-		}
 	};
 	
 	show() {

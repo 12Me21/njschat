@@ -3,6 +3,7 @@
 const WebSocket = require("ws");
 const Axios = require("axios");
 
+// https://www.w3.org/TR/html401/interact/forms.html#didx-multipartform-data
 function simpleFormdata(name, data) {
 	var boundary = "534324312421";
 	return [
@@ -11,8 +12,6 @@ function simpleFormdata(name, data) {
 		{headers: {"Content-Type":"multipart/form-data; boundary="+boundary}},
 	];
 }
-
-const window = global;
 
 const Base64 = {
 	encode: function(string) {
@@ -40,10 +39,8 @@ LogSystem.CriticalLevel = 60;
 //An object that allows easy interaction with the SBS chat. It will select the
 //best connection method based on your browser. Alternatively, you can force
 //the connection.
-function PolyChat(logger)
-{
-	var log = function(message, level) 
-	{ 
+function PolyChat(logger) {
+	var log = function(message, level) { 
 		if(logger && logger.log && level>=LogSystem.DebugLevel)
 			logger.log(message); 
 	};
@@ -76,22 +73,16 @@ function PolyChat(logger)
 	var lastretrieve = 0;
 	//var totalIncomingBandwidth = 0;
 
-	var doOnMessage = function(json)
-	{
+	var doOnMessage = function(json) {
 		log("Attempting PolyChat onMessage: " + json.type, LogSystem.TraceLevel);
 
-		if(json.type === "messageList")
-		{
+		if(json.type === "messageList") {
 			var newMessages = [];
 
-			for(var i = 0; i < json.messages.length; i++)
-			{
-				if(myself.seenIDs.indexOf(json.messages[i].id) >= 0)
-				{
+			for(var i = 0; i < json.messages.length; i++) {
+				if(myself.seenIDs.indexOf(json.messages[i].id) >= 0) {
 					log("Skipping duplicate message: " + json.messages[i].id, LogSystem.TraceLevel);
-				}
-				else
-				{
+				} else {
 					myself.seenIDs.push(json.messages[i].id);
 					newMessages.push(json.messages[i]);
 				}
@@ -99,8 +90,7 @@ function PolyChat(logger)
 
 			json.messages = newMessages;
 
-			if(json.messages.length === 0)
-			{
+			if(json.messages.length === 0) {
 				log("Skipping entire messagelist: " + json.id, LogSystem.DebugLevel);
 				return;
 			}
@@ -109,15 +99,13 @@ function PolyChat(logger)
 		if(myself.onMessage)
 			myself.onMessage(json);
 	};
-	var doOnError = function(error)
-	{
+	var doOnError = function(error) {
 		log("PolyChat error: " + error, LogSystem.ErrorLevel);
 
 		if(myself.onError)// && connected)
 			myself.onError(error);
 	};
-	var doOnClose = function(reason)
-	{
+	var doOnClose = function(reason) {
 		log("PolyChat closing: " + reason, LogSystem.InfoLevel);
 
 		if(myself.onClose && connected)
@@ -126,16 +114,14 @@ function PolyChat(logger)
 		connected = false;
 	};
 
-	this.close = function(reason)
-	{
+	this.close = function(reason) {
 		if(myself.webSocket)
 			myself.webSocket.close(); //This will eventually call doOnClose anyway
 		else
 			doOnClose(reason);
 	};
 
-	this.start = function(uid, chatauth, force)
-	{
+	this.start = function(uid, chatauth, force) {
 		var i;
 		var connectMessage = {'type': 'bind','uid': Number(uid),'key': chatauth};
 		log("Starting PolyChat with uid: " + uid + ", chatauth: " + chatauth, LogSystem.InfoLevel);
@@ -145,20 +131,17 @@ function PolyChat(logger)
 			force = PolyChat.ForceWebsockets;
 		}
 		
-		if(force == PolyChat.ForceWebsockets)
-		{
+		if(force == PolyChat.ForceWebsockets) {
 			log("PolyChat will use websockets", LogSystem.DebugLevel);
 			myself.webSocket = new WebSocket(myself.webSocketURL);
-			myself.webSocket.onopen = function(event) 
-			{
+			myself.webSocket.onopen = function(event) {
 				if (myself.onOpen)
 					myself.onOpen();
 				log("Websockets opened! Attempting bind", LogSystem.DebugLevel);
 				connected = true;
 				myself.sendMessage(JSON.stringify(connectMessage)); 
 			};
-			myself.webSocket.onclose = function(event) 
-			{ 
+			myself.webSocket.onclose = function(event) { 
 				if(!connected)
 					doOnClose("The server appears to be down.");
 				else
@@ -167,26 +150,21 @@ function PolyChat(logger)
 				log("Polychat websocket close event: ");
 				connected = false;
 			};
-			myself.webSocket.onerror = function(error)
-			{
+			myself.webSocket.onerror = function(error) {
 				doOnError("Websocket error");// + JSON.stringify(error));
 				log("Polychat websocket error event: ", LogSystem.ErrorLevel);
 			};
-			myself.webSocket.onmessage = function(event) 
-			{
+			myself.webSocket.onmessage = function(event) {
 				doOnMessage(JSON.parse(event.data));
 			};
-		}
-		else if(force === PolyChat.ForceXHR)
-		{
+		} else if(force === PolyChat.ForceXHR) {
 			log("PolyChat will use XHR", LogSystem.DebugLevel);
 
 			if (!myself.session) {
 				throw "XHR Polychat requires session token";
 			}
 			
-			myself.xhr = function(jsonMessage, callback)
-			{
+			myself.xhr = function(jsonMessage, callback) {
 				// It's better to use formdata, but
 				// just in case my formdata function breaks, you can disable that
 				// and use double base64 instead
@@ -207,41 +185,32 @@ function PolyChat(logger)
 			};
 		}
 
-		if(force !== PolyChat.ForceWebsockets)
-		{
+		if(force !== PolyChat.ForceWebsockets) {
 			log("Starting proxy. URL: " + this.proxyURL + ", ID: " + this.proxyID, LogSystem.DebugLevel);
-			sendProxyMessage("proxyStart", null, function(json)
-							 {
-								 if(json.result !== -1)
-								 {
-									 if (myself.onOpen)
-										 myself.onOpen();
-									 log("Proxy started successfully", LogSystem.DebugLevel);
-								 }
-								 else
-								 {
-									 log("Proxy ID already in use. Sharing session: " + myself.proxyID, LogSystem.InfoLevel);
-									 myself.requestUserList();
-									 myself.requestMessageList();
-								 }
-								 
-								 connected = true;
-								 sendProxyMessage("proxySend", JSON.stringify(connectMessage));
-								 setTimeout(retrieveProxyMessages, myself.retrieveInterval / 2);
-								 burstRetrieveProxyMessages(200,1);
-							 });
+			sendProxyMessage("proxyStart", null, function(json) {
+				if(json.result !== -1) {
+					if (myself.onOpen)
+						myself.onOpen();
+					log("Proxy started successfully", LogSystem.DebugLevel);
+				} else {
+					log("Proxy ID already in use. Sharing session: " + myself.proxyID, LogSystem.InfoLevel);
+					myself.requestUserList();
+					myself.requestMessageList();
+				}
+				
+				connected = true;
+				sendProxyMessage("proxySend", JSON.stringify(connectMessage));
+				setTimeout(retrieveProxyMessages, myself.retrieveInterval / 2);
+				burstRetrieveProxyMessages(200,1);
+			});
 		}
 	};
 
 	//What is exposed to the outside for sending STRING messages.
-	this.sendMessage = function(message)
-	{
-		if(myself.webSocket)
-		{
+	this.sendMessage = function(message) {
+		if(myself.webSocket) {
 			myself.webSocket.send(message);
-		}
-		else
-		{
+		} else {
 			sendProxyMessage("proxySend", message);
 
 			//Make it LOOK like we're going faaast
@@ -250,18 +219,15 @@ function PolyChat(logger)
 		}
 	};
 
-	this.requestUserList = function()
-	{
+	this.requestUserList = function() {
 		myself.sendMessage(JSON.stringify({type:"request",request:"userList"}));
 	};
 
-	this.requestMessageList = function()
-	{
+	this.requestMessageList = function() {
 		myself.sendMessage(JSON.stringify({type:"request",request:"messageList"}));
 	};
 
-	var sendProxyMessage = function(type, parts, callback)
-	{
+	var sendProxyMessage = function(type, parts, callback) {
 		if(!parts)
 			parts = { data : null };
 		else if(!parts.data)
@@ -276,12 +242,9 @@ function PolyChat(logger)
 		log("Sending ChatProxy message: " + jsonMessage, LogSystem.TraceLevel);
 
 		//Send messages in different ways based on what we have.
-		if(myself.webSockets)
-		{
+		if(myself.webSockets) {
 			log("Trying to send proxy message when no proxy set up!", LogSystem.WarningLevel);
-		}
-		else if(myself.xhr)
-		{
+		} else if(myself.xhr) {
 			//Encode it as base64 for maximum compatibility. Note that IF the 
 			//system doesn't support FormData, this method will double encode the
 			//data as base64. This is highly inefficient, and should be changed later
@@ -292,41 +255,34 @@ function PolyChat(logger)
 		}
 	};
 
-	var retrieveProxyMessages = function(singleRun)
-	{
-		sendProxyMessage("proxyReceive", {data: null, lastretrieve: lastretrieve}, function(json)
-							  {
-								  var i;
-
-								  if(json.result === false)
-								  {
-									  var allErrors = "";
-									  for(i = 0; i < json.errors.length; i++)
-										  allErrors += json.errors[i] + (i < json.errors.length - 1 ? " /" : "");
-
-									  doOnError("Proxy received errors: " + allErrors);
-									  myself.close("received proxy errors");
-								  }
-
-								  log("Received ChatProxy message with " + json.result.length + " queued messages", LogSystem.TraceLevel);
-								  lastRetrieve = json.result.lastretrieve;
-
-								  for(i = 0; i < json.result.length; i++)
-									  doOnMessage(JSON.parse(json.result[i]));
-
-								  if(connected)
-								  {
-									  if(!singleRun) setTimeout(retrieveProxyMessages, myself.retrieveInterval);
-								  }
-								  else
-								  {
-									  log("ChatProxy will stop retrieving messages; it's no longer connected", LogSystem.WarningLevel);
-								  }
-							  });
+	var retrieveProxyMessages = function(singleRun) {
+		sendProxyMessage("proxyReceive", {data: null, lastretrieve: lastretrieve}, function(json) {
+			var i;
+			
+			if(json.result === false) {
+				var allErrors = "";
+				for(i = 0; i < json.errors.length; i++)
+					allErrors += json.errors[i] + (i < json.errors.length - 1 ? " /" : "");
+				
+				doOnError("Proxy received errors: " + allErrors);
+				myself.close("received proxy errors");
+			}
+			
+			log("Received ChatProxy message with " + json.result.length + " queued messages", LogSystem.TraceLevel);
+			lastRetrieve = json.result.lastretrieve;
+			
+			for(i = 0; i < json.result.length; i++)
+				doOnMessage(JSON.parse(json.result[i]));
+			
+			if(connected) {
+				if(!singleRun) setTimeout(retrieveProxyMessages, myself.retrieveInterval);
+			} else {
+				log("ChatProxy will stop retrieving messages; it's no longer connected", LogSystem.WarningLevel);
+			}
+		});
 	};
 
-	var burstRetrieveProxyMessages = function(interval, times)
-	{
+	var burstRetrieveProxyMessages = function(interval, times) {
 		var burstRetrieveFunction = function() { retrieveProxyMessages(true); };
 
 		for(var i = 0; i < times; i++)

@@ -2,6 +2,7 @@ require("./patch.js");
 var G = require("./screen.js");
 var I = exports;
 var User = require("./user.js");
+var Room = require("./room.js");
 
 exports.onUnload = function(){
 	G.onUnload();
@@ -45,9 +46,16 @@ exports.displayMessage = function(messageData){
 		safe: safe = "unknown",
 	} = messageData;
 	
+	tag = new Room(tag);
+	// It's a good idea to use new Room/Sender to convert name to object
+	// because that way it can return a reference to an item in the internal
+	// user/room list, and there won't ever be multiple objects
+	// referring to the same user/room
+	// and, new Room can create the room if it doesn't exist
 	if (sender)
 		sender = new User(sender);
 	text = stripHTML(message);
+	
 	switch(type){
 	case "system":
 		G.systemMessage(text, tag, sender);
