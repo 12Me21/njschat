@@ -115,33 +115,22 @@ exports.setInputHandler = function(func, bypassConsole) {
 	inputHandler = func;
 	if (!setOn) {
 		input.on("submit", function(text) {
+			input.clearValue();
+			screen.render();
 			if (!bypassConsole && Room.current.name == "console") {
-				input.clearValue();
-				screen.render();
-				G.log("<< " + text);
-				try{
-					console.log(">> ", eval(text));
+				Room.list.console.print("<< "+C(text, undefined, [255,255,192]));
+				try {
+					console.log(">>", eval(text));
 				} catch(e) {
 					console.error(e);
 				}
-			} else {
-				if (inputHandler) {
-					input.clearValue();
-					screen.render();
+			} else if (inputHandler) {
 					inputHandler(text, Room.current.name);
-				}
 			}
 			input.readInput();
 		});
 		setOn = true;
 	}
-}
-
-G.Room = Room;
-
-exports.onUnload = function(){
-	screen.leave();
-	screen.destroy();
 }
 
 // print text to pane

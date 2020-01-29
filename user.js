@@ -2,6 +2,7 @@
 
 const Axios = require("axios");
 
+// limit an action to once every `interval` milliseconds
 var last = 0;
 function limit(interval, callback) {
 	var now = Date.now();
@@ -56,8 +57,18 @@ class User {
 			return this.username; // bad
 		return this.nickname;
 	}
-
+	
 	getColors() {};
+	
+	gotNickname(success) {
+		if (success)
+			this.nicknameCallbacks.forEach(x=>{
+				if (x)
+					x(this);
+			});
+		this.requestedNickname = false;
+		this.nicknameCallbacks = [];
+	}
 	
 	// if nickname is currently known, this will return immediately
 	// otherwise, it will call `callback` after requesting the name
@@ -69,37 +80,24 @@ class User {
 				limit(100, ()=>{
 					if (this.nickname !== undefined) {
 						// got nickname while waiting
-						this.nicknameCallbacks.forEach(x=>{
-							if (x)
-								x(this);
-						});
-						this.requestedNickname = false; // this pattern repeats a lot, maybe make a function to activate the callbacks etc.
-						this.nicknameCallbacks = [];
+						this.gotNickname(true);
 					} else {
 						console.log("requesting nickname for "+this.username);
 						Axios.get("http://smilebasicsource.com/query/tinycomputerprograms?username="+this.username+"&program=nickname").then(response=>{
-							var body = response.data;
-							var nickname = unescape(body);
+							var nickname = unescape(response.data);
 							if (nickname >= " " && nickname != "\r\n") {
 								this.nickname = nickname;
-								this.nicknameCallbacks.forEach(x=>{
-									if (x)
-										x(this);
-								});
-								this.requestedNickname = false;
-								this.nicknameCallbacks = [];
+								this.gotNickname(true);
 							} else {
 								this.nickname = false;
-								this.requestedNickname = false;
-								this.nicknameCallbacks = [];
+								this.gotNickname(false);
 								// wait should this still activate the callbacks...
 							}
 						}).catch(error=>{
 							console.error("Nickname request failed");
 							console.error(error);
 							this.nickname = false;
-							this.requestedNickname = false;
-							this.nicknameCallbacks = [];
+							this.gotNickname(false);
 						});
 					}
 				});
@@ -112,12 +110,15 @@ class User {
 			return this.nickname;
 		}
 	}
-	
+
+	// request a user by name (also have uid option?)
+	getUser(name, callback) {
+		
+	}
 }
 
 User.all = {}; //list of all users
 User.byName = {}; //all, by name
-User.lastNameRequest = 0;
-User.me = null;
+User.me = null; //yourself
 
 module.exports = User;

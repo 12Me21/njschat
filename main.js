@@ -149,10 +149,16 @@ function encodeBase64(string) {
 	return Buffer.from(String(string), "binary").toString("base64");
 }
 
+// todo:
+// print important error messages (connection error, etc.) as
+// warnings
+
 // also temporary
 var commands = {
 	nick: function(params){
 		submitMessage("[rpl29nick] "+User.me.username+"'s name is now "+params);
+		// the nickname system uses a weird protocol uhhhh
+		// yeah can't wait for rp30 lol
 		function write_persistent(name, value){
 			function escape_name(name){ // why does this even exist lol I don't remember
 				// wait I think it was for like
@@ -173,9 +179,11 @@ var commands = {
 	}
 };
 
-function submitMessage(text, roomName){
-	if (!roomName)
-		roomName = Room.current.name;
+// wait what if this was a method on Room... (nnnn)
+function submitMessage(text, roomName = Room.current.name){
+	// idea: handle console input here instead of in screen.js
+	// ah except, we don't want console input to depend on the inputhandler
+	// being set to this function (it should be available always)
 	var match = text.match(/^\/(\w+)(?: (.*))?$/);
 	if (match && commands[match[1]]) {
 		commands[match[1]](match[2]||"");
