@@ -8,7 +8,7 @@ class URL {
 			url = Url.resolve(host, url)
 		url =  Url.parse(url, false, true);
 		if (!(url && url.host))
-			return null;
+			return {}; //bad
 		return url;
 	}
 }
