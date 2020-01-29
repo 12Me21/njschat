@@ -201,7 +201,7 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 	
 	var {uid: useruid, username: username} = user;
 	
-	G.setInputHandler(submitMessage);
+	G.setInputHandler(submitMessage, false);
 
 	// ws url override argument
 	var override = null;

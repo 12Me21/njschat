@@ -115,7 +115,7 @@ exports.setInputHandler = function(func, bypassConsole) {
 	inputHandler = func;
 	if (!setOn) {
 		input.on("submit", function(text) {
-			if (!bypassConsole && Room.current == Room.list.console) {
+			if (!bypassConsole && Room.current.name == "console") {
 				input.clearValue();
 				screen.render();
 				G.log("<< " + text);

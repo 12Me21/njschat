@@ -73,6 +73,8 @@ class User {
 							if (x)
 								x(this);
 						});
+						this.requestedNickname = false; // this pattern repeats a lot, maybe make a function to activate the callbacks etc.
+						this.nicknameCallbacks = [];
 					} else {
 						console.log("requesting nickname for "+this.username);
 						Axios.get("http://smilebasicsource.com/query/tinycomputerprograms?username="+this.username+"&program=nickname").then(response=>{
@@ -84,14 +86,20 @@ class User {
 									if (x)
 										x(this);
 								});
+								this.requestedNickname = false;
+								this.nicknameCallbacks = [];
 							} else {
 								this.nickname = false;
+								this.requestedNickname = false;
+								this.nicknameCallbacks = [];
 								// wait should this still activate the callbacks...
 							}
 						}).catch(error=>{
 							console.error("Nickname request failed");
 							console.error(error);
 							this.nickname = false;
+							this.requestedNickname = false;
+							this.nicknameCallbacks = [];
 						});
 					}
 				});
