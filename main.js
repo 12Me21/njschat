@@ -35,7 +35,7 @@ class StreamToString extends require("stream").Writable {
 // set up error handling/console as soon as possible
 var fakeStdout = new StreamToString();
 global.console = console.Console(fakeStdout, fakeStdout);
-
+const C = require("./c.js");
 process.on("uncaughtException", (e)=>{ //UNLIMITED POWER
 	console.error(C("UNCAUGHT EXCEPTION!",[255,255,255],[255,0,0]));
 	console.error(e);
@@ -50,7 +50,6 @@ require("./patch.js");
 const User = require("./user.js");
 const Room = require("./room.js");
 const URL = require("./url.js"); //replicates URL library for compatibility with old nodejs
-const C = require("./c.js");
 const PolyChat = require("./polychat2.js");
 const Auth = require("./auth.js");
 const G = require("./screen.js");
