@@ -110,6 +110,6 @@ class User {
 User.all = {}; //list of all users
 User.byName = {}; //all, by name
 User.lastNameRequest = 0;
-
+User.me = null;
 
 module.exports = User;

@@ -197,7 +197,11 @@ exports.message = function(text, room, user){
 	// alright all this needs to be handled better
 	// a nice thing would be like
 	// to handle most of this in Room
-	// too tire dto expliang/..
+  // too tire dto expliang/..
+
+  // this is very broken because of the any tab
+  // messages will merge in ANY if they should've merged in the main tab
+  // need to move this into Room.print somehow
 	if (room && !(username && room.last == username)) {
 		if (room.lastUser != username)
 			print("", room);

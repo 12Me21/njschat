@@ -35,6 +35,7 @@ class StreamToString extends require("stream").Writable {
 // set up error handling/console as soon as possible
 var fakeStdout = new StreamToString();
 global.console = console.Console(fakeStdout, fakeStdout);
+
 const C = require("./c.js");
 process.on("uncaughtException", (e)=>{ //UNLIMITED POWER
 	console.error(C("UNCAUGHT EXCEPTION!",[255,255,255],[255,0,0]));
@@ -53,6 +54,21 @@ const URL = require("./url.js"); //replicates URL library for compatibility with
 const PolyChat = require("./polychat2.js");
 const Auth = require("./auth.js");
 const G = require("./screen.js");
+const Axios = require("axios");
+
+// temporary
+// I wonder if this is good enough (having to check .type and whatever)
+// I think I'll release this and maybe layer add a nicer system like
+var messageEvents = [
+  function(msg){
+		if (msg.type=="message" && msg.encoding=="text") {
+			var match = msg.text.match(/^\[rpl[23]\dnick] (.*?)'s name is now (.*)/);
+			if (match) {
+				msg.sender.nickname = match[2] || false;
+			}
+		}
+	}
+];
 
 function displayMessage(messageData){
 
@@ -78,8 +94,9 @@ function displayMessage(messageData){
 		message: message,
 		time: time,
 	} = messageData;
-	
-	var text = stripHTML(message);
+	var text = messageData.text = stripHTML(message);
+	// todo: try/catch
+	messageEvents.forEach(x => x(messageData));
 	
 	switch(type){
 	case "system":
@@ -128,7 +145,42 @@ var defaultRooms = [
 	new Room("any"),
 ];
 
+function encodeBase64(string) {
+	return Buffer.from(String(string), "binary").toString("base64");
+}
+
+// also temporary
+var commands = {
+	nick: function(params){
+		submitMessage("[rpl29nick] "+User.me.username+"'s name is now "+params);
+		function write_persistent(name, value){
+			function escape_name(name){ // why does this even exist lol I don't remember
+				// wait I think it was for like
+				// utf8?
+				var out=""
+				for(var i=0;i<name.length;i++){
+					var chr=name.charAt(i);
+					if(chr=="\0" || chr>="\x7F" || chr=="%")
+            out+=escape(chr);
+					else
+            out+=chr;
+				}
+				return out;
+			}
+			Axios.get("https://smilebasicsource.com/query/submit/varstore?nameb64="+encodeBase64(name)+"&valueb64="+encodeBase64(escape_name(value))+"&session="+polyChat.session);
+		}
+		write_persistent("nickname_tcf", params || "\r\n");
+	}
+};
+
 function submitMessage(text, roomName){
+	if (!roomName)
+		roomName = Room.current.name;
+	var match = text.match(/^\/(\w+)(?: (.*))?$/);
+	if (match && commands[match[1]]) {
+		commands[match[1]](match[2]||"");
+		return;
+	}
 	polyChat.sendMessage({
 		type: "message",
 		text: text,
@@ -145,6 +197,8 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 		return;
 	}
 
+	User.me = new User(user); //not complete, will be updated by userlist + messages
+	
 	var {uid: useruid, username: username} = user;
 	
 	G.setInputHandler(submitMessage);
@@ -179,7 +233,7 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 	
 	polyChat.onList = function(msg) {
 		G.updateUserlist(msg.users);
-		Room.updateList(defaultRooms.concat(msg.rooms)); //probably does nothing
+		Room.updateList();
 	};
 
 	polyChat.onResponse = function(msg) {

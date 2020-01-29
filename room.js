@@ -1,5 +1,6 @@
 const C = require("./c.js");
 
+
 function indent(message, indent){
 	return indent+message.replace(/\n/g,"\n"+indent);
 }
@@ -14,6 +15,8 @@ class Room {
 			users = name.users;
 			name = name.name;
 		}
+		if (name == "none")
+			name = "any";
 		var t = this;
 		
 		if (Room.list[name]) {
@@ -57,16 +60,11 @@ class Room {
 	}
 
 	static updateList(newRooms) {
-		// add new rooms to list
-		// rooms will already be created
-		// todo (and this applies to User as well):
-		// maybe have a separate list for "active" rooms
-		// though, with rooms, unlike users, they can't "come back" after
-		// being deleted, so it may be ok to just delete them when needed
-		/*if (newRooms)
-			newRooms.forEach(room=>{
-				new Room(room);
-			});*/
+		// maybe have a function take a list of rooms
+		// from roomlist, and add the default rooms, and store this
+		// as "current rooms"
+		// separate from the full list, for purposes of interning and
+		// etc.
 		Room.drawList(Room.list.map(room=>room.tabLabel()).join(""));
 	};
 
@@ -130,5 +128,14 @@ Room.list = []; // list of all rooms
 Room.current; // current room
 Room.scrollbarStyle = null;
 Room.formatName = null;
+
+/*new Room("console");
+new Room("general");
+new Room("offtopic");
+new Room("admin");
+new Room("any");*/
+// can't create the rooms here, because graphics/config aren't ready yet
+// This is kind of a problem, uh
+// just be careful about creating rooms, I guess
 
 module.exports = Room;
