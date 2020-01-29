@@ -58,10 +58,15 @@ class Room {
 
 	static updateList(newRooms) {
 		// add new rooms to list
-		if (newRooms)
+		// rooms will already be created
+		// todo (and this applies to User as well):
+		// maybe have a separate list for "active" rooms
+		// though, with rooms, unlike users, they can't "come back" after
+		// being deleted, so it may be ok to just delete them when needed
+		/*if (newRooms)
 			newRooms.forEach(room=>{
 				new Room(room);
-			});
+			});*/
 		Room.drawList(Room.list.map(room=>room.tabLabel()).join(""));
 	};
 

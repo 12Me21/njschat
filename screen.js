@@ -137,11 +137,6 @@ exports.setInputHandler = function(func, bypassConsole) {
 	}
 }
 
-exports.onLoad = function(I, state){
-	G.updateUserlist(state.users);
-	Room.updateList(state.rooms);
-}
-
 G.Room = Room;
 
 exports.onUnload = function(){
