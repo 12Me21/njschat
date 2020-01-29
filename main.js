@@ -3,12 +3,7 @@
 // maybe it would be better to not do this, because rooms are created in PolyChat, so
 // I mean, have a separate list for displaying, and update that manually, or something?
 
-require("./patch.js");
-
-var Console = require("console").Console;
-var Stream = require("stream");
-
-class StreamToString extends Stream.Writable {
+class StreamToString extends require("stream").Writable {
 	constructor(x, callback){
 		super(x);
 		this.callback = callback;
@@ -39,7 +34,7 @@ class StreamToString extends Stream.Writable {
 
 // set up error handling/console as soon as possible
 var fakeStdout = new StreamToString();
-global.console = new Console(fakeStdout, fakeStdout);
+global.console = console.Console(fakeStdout, fakeStdout);
 
 process.on("uncaughtException", (e)=>{ //UNLIMITED POWER
 	console.error(C("UNCAUGHT EXCEPTION!",[255,255,255],[255,0,0]));
@@ -51,13 +46,14 @@ process.on("unhandledRejection", (e, p) => {
 	console.error(p);
 });
 
-var User = require("./user.js");
-var Room = require("./room.js");
+require("./patch.js");
+const User = require("./user.js");
+const Room = require("./room.js");
 const URL = require("./url.js"); //replicates URL library for compatibility with old nodejs
 const C = require("./c.js");
-var PolyChat = require("./polychat2.js");
-var Auth = require("./auth.js");
-var G = require("./screen.js");
+const PolyChat = require("./polychat2.js");
+const Auth = require("./auth.js");
+const G = require("./screen.js");
 
 function displayMessage(messageData){
 
@@ -156,7 +152,7 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 
 	// ws url override argument
 	var override = null;
-	if (process.argv[2] && new URL(process.argv[2])) {
+	if (process.argv[2] && new URL(process.argv[2]).host) {
 		override = process.argv[2];
 	} else {
 		override = require("./config.js").websocketUrl;

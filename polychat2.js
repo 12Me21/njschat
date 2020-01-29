@@ -107,12 +107,12 @@ class PolyChat {
 		var connectMessage = {'type': 'bind','uid': this.uid};
 		
 		if (!this.forceXHR) {
-			console.debug("PolyChat will use websockets");
+			console.info("PolyChat will use websockets");
 			this.webSocket = new WebSocket(this.webSocketURL);
 			this.webSocket.onopen = (event)=>{
 				if (this.onOpen)
 					this.onOpen();
-				console.debug("Websockets opened! Attempting bind");
+				console.info("Websockets opened! Attempting bind");
 				this._connected = true;
 				this.sendMessage(connectMessage);
 			};
@@ -125,7 +125,7 @@ class PolyChat {
 				this._doOnMessage(JSON.parse(event.data));
 			}
 		} else {
-			console.debug("PolyChat will use XHR");
+			console.info("PolyChat will use XHR");
 			if (!this.session)
 				throw "XHR Polychat requires session token";
 
@@ -149,14 +149,14 @@ class PolyChat {
 				});
 			};
 
-			console.debug("Starting proxy. URL: "+this.proxyURL+", ID: "+this.proxyID);
+			console.info("Starting proxy. URL: "+this.proxyURL+", ID: "+this.proxyID);
 			this._sendProxyMessage("proxyStart", null, (json)=>{
 				if(json.result !== -1) {
 					if (this.onOpen)
 						this.onOpen();
-					console.debug("Proxy started successfully");
+					console.info("Proxy started successfully");
 				} else {
-					console.debug("Proxy ID already in use. Sharing session: " + this.proxyID);
+					console.info("Proxy ID already in use. Sharing session: " + this.proxyID);
 					this.requestUserList();
 					this.requestMessageList();
 				}
@@ -164,7 +164,7 @@ class PolyChat {
 				this._connected = true;
 				this.sendMessage(connectMessage)
 				setTimeout(this._retrieveProxyMessages.bind(this), this.retrieveInterval/2);
-				this._burstRetrieveProxyMessages(200,5);
+				this._burstRetrieveProxyMessages(200, 5);
 			});
 		}
 	}
