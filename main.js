@@ -74,6 +74,7 @@ function displayMessage(messageData){
 
 	function stripHTML(string){
 		return string
+			.replace(/\x1B/g,"")
 			.replace(/<\/?\w+.*?>/g,"")
 			.replace(/&quot;/g,'"').replace(/&apos;/g,"'")
 			.replace(/&gt;/g,">").replace(/&lt;/g,"<")

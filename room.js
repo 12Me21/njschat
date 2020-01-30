@@ -28,6 +28,8 @@ class Room {
 			Room.list[name] = t;
 			if (!Room.current)
 				t.show();
+			t.lastSender = null;
+			t.lastNormal = false;
 			// maybe this should update the room list
 		}
 		if (users)
@@ -46,15 +48,15 @@ class Room {
 		});
 	}
 
-	replaceName(line, user, prefix) {
+	replaceName(line, user, realRoom) {
 		//var oldUser = this.nameLines[line]
 		//if (!oldUser) {//uh oh
 	//		console.warn("failed to replace name"); //todo: more info
 	//		return;
 		//	}
-		var text = "  "+user.formatMessageUsername(); //hardcoded indent :(
-		if (prefix)
-			text += " "+prefix;
+		var text = user.formatMessageUsername(); //hardcoded indent :(
+		//if (prefix)
+		//	text += " "+prefix;
 		this.box.setLine(line, text);
 		this.box.render();
 	}
@@ -101,25 +103,30 @@ class Room {
 		this.box.render();
 	};
 	
-	print(text, replaceLater, prefix) {
+	print(text, sender, normal, realRoom) {
 		var scroll = this.atBottom();
-		this.last = null;
-		this.lastUser = null;
 		var pane = this.box;
-		var line = pane.lineCount();
+		
+		if (!sender || sender != this.lastSender) {
+			pane.pushLine("");
+		}
+		// normal message, needs name labelll
+		if (normal && sender && (!this.lastNormal || this.lastSender != sender)) {
+			var line = pane.lineCount();
+			pane.pushLine(sender.formatMessageUsername());
+			sender.getNickname(user=>{
+				this.replaceName(line, user, realRoom);
+			});
+		}
+		this.lastNormal = normal;
+		this.lastSender = sender;
+		
 		pane.pushLine(text);
+		
 		if (scroll)
 			pane.setScrollPerc(100);
 		this.updateScrollbar();
 		this.box.render();
-		if (prefix)
-			text = indent(text, prefix);
-		if (replaceLater) {
-			//this.nameLines[line] = user;
-			replaceLater((user)=>{
-				this.replaceName(line, user, prefix);
-			});
-		}
 	};
 }
 

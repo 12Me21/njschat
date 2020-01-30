@@ -84,7 +84,7 @@ class User {
 					} else {
 						console.log("requesting nickname for "+this.username);
 						Axios.get("http://smilebasicsource.com/query/tinycomputerprograms?username="+this.username+"&program=nickname").then(response=>{
-							var nickname = unescape(response.data);
+							var nickname = unescape(response.data).replace(/\x1B/g,"");
 							if (nickname >= " " && nickname != "\r\n") {
 								this.nickname = nickname;
 								this.gotNickname(true);
