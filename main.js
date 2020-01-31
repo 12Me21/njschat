@@ -134,8 +134,6 @@ displayMessage.module = function(text){
 	displayMessage({type:"module",message:text});
 }
 
-fakeStdout.callback = G.log;
-
 var polyChat;
 
 var defaultRooms = [
@@ -145,6 +143,8 @@ var defaultRooms = [
 	new Room("admin"),
 	new Room("any"),
 ];
+
+fakeStdout.callback = G.log;
 
 function encodeBase64(string) {
 	return Buffer.from(String(string), "binary").toString("base64");
@@ -207,7 +207,6 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 	}
 
 	User.me = new User(user); //not complete, will be updated by userlist + messages
-	
 	var {uid: useruid, username: username} = user;
 	
 	G.setInputHandler(submitMessage, false);

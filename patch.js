@@ -41,3 +41,10 @@ Element.prototype.lineCount = function(){
 		return 0;
 	return this._clines.fake.length;
 };
+
+Element.prototype.pushLine = function(line){
+	if (/\x1B\[.*m$/.test(line))
+		line = line+" ";
+	if (!this.content) return this.setLine(0, line);
+	return this.insertLine(this._clines.fake.length, line);
+};

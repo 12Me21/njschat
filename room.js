@@ -104,14 +104,15 @@ class Room {
 	};
 	
 	print(text, sender, normal, realRoom) {
+		
 		var scroll = this.atBottom();
 		var pane = this.box;
 		
-		if (!sender || sender != this.lastSender) {
+		if ((!sender || sender != this.lastSender || this.lastRealRoom != realRoom) && this.name != "console") {
 			pane.pushLine("");
 		}
 		// normal message, needs name labelll
-		if (normal && sender && (!this.lastNormal || this.lastSender != sender)) {
+		if (normal && sender && (!this.lastNormal || this.lastSender != sender || this.lastRealRoom != realRoom)) {
 			var line = pane.lineCount();
 			pane.pushLine(sender.formatMessageUsername());
 			sender.getNickname(user=>{
@@ -120,6 +121,7 @@ class Room {
 		}
 		this.lastNormal = normal;
 		this.lastSender = sender;
+		this.lastRealRoom = realRoom;
 		
 		pane.pushLine(text);
 		

@@ -7,5 +7,11 @@ module.exports = function(text,fg,bg){
 		ctl += "\x1B[48;2;"+bg[0]+";"+bg[1]+";"+bg[2]+"m";
 	// insert CSR m reset sequence before trailing newlines
 	// due to a bug in the library
-	return ctl+text.replace(/\n*$/, "\x1B[m$&");
+	return ctl+text+"\x1B[m"//"//text.replace(/\n*$/, "\x1B[m$&");
 }
+
+let Credits    =
+      12       ,
+   randomous   ,
+    Yttria     ,
+    chicken    ;

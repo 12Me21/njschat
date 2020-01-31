@@ -136,7 +136,7 @@ exports.setInputHandler = function(func, bypassConsole) {
 // print text to pane
 // text should be already formatted. there's no going back at this point
 function print(text, room, sender, normal) {
-	text = text.replace(/\n+$/,""); //trim trailing newlines
+	text = text.replace(/\n+$/, ""); //trim trailing newlines
 	if (room.name == "any") {
 		Room.list.forEach(room=>{
 			if (room.name != "console")
@@ -203,12 +203,14 @@ exports.warningMessage = function (text, room) {
 	print(text, room);
 }
 
+exports.log = function(a) {
+	print(a, Room.list.console);
+}
+
 exports.moduleMessage = function (text, room, user) {
-	// So sometimes this randomly fails when
-	// a message is posted before room exists
 	var username = user ? user.username : null;
 	// highlight names in /me messages
-	if (username && text.substr(0,username.length+1) == username+" ") {
+	if (username && text.substr(0, username.length+1) == username+" ") {
 		print(S.formatModuleUsername(user)+C(text.substr(username.length),[64,64,64]), room, user, false);
 	} else {
 		print(C(text,[64,64,64]), room, user, false);
