@@ -78,18 +78,11 @@ function displayMessage(messageData){
 	}
 	
 	var {
-		module: module,
-		spamvalue: spamvalue,
 		tag: tag = new Room("any"),
-		encoding: encoding,
-		safe: safe = "unknown",
 		sender: sender = {},
-		sendtype: sendtype,
-		recipients: recipients = [],
 		type: type = "",
-		id: id = 0,
 		message: message,
-		time: time,
+		//time: time,
 	} = messageData;
 	var text = messageData.text = stripHTML(message);
 	// todo: try/catch
@@ -97,12 +90,13 @@ function displayMessage(messageData){
 	
 	switch(type){
 	case "system":
-		G.systemMessage(text+" ("+sendtype+")", tag, sender);
+		G.systemMessage(text+" ("+messageData.sendtype+")", tag, sender);
 		break;
 	case "warning":
 		G.warningMessage(text, tag);
 		break;
 	case "module":
+		var module = messageData.module;
 		G.moduleMessage(text, tag, sender);
 		break;
 	case "message":
@@ -130,7 +124,8 @@ displayMessage.module = function(text){
 	displayMessage({type:"module",message:text});
 }
 
-var polyChat;
+var polyChat = new PolyChat();
+API.polyChat = polyChat;
 
 var defaultRooms = [
 	new Room("console"),
@@ -176,8 +171,6 @@ function submitMessage(text, roomName = Room.current.name){
 
 API.sendMessage = submitMessage;
 
-console.log("starting");
-
 Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 	if (!user){
 		console.warn("Failed to log in");
@@ -198,9 +191,6 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 		override = require("./config.js").websocketUrl;
 	}
 	
-	polyChat = new PolyChat(useruid, auth, session, process.argv[2]=='-p')
-	API.polyChat = polyChat;
-	
 	if (override) {
 		polyChat.webSocketURL = override;
 		console.log("Using custom websocket url: "+polyChat.webSocketURL);
@@ -208,6 +198,9 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 	
 	if (!polyChat.forceXHR)
 		console.log("if chat is using websockets and fails to connect, try -p flag to use https proxy");
+	
+	API.onLoad();
+	polyChat.start(useruid, auth, session, process.argv[2]=='-p');	
 	
 	var firstMessageList = false;
 	
@@ -240,13 +233,9 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 		} else {
 			if (!msg.result) {
 				msg.errors.forEach(error=>{
-					displayMessage.warning("Received error response from chat: " + error);
+					displayMessage.warning("[Server] " + error);
 				});
 			}
 		}
 	};
-
-	API.onLoad();
-	
-	polyChat.start();
 })

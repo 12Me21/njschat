@@ -68,13 +68,13 @@ exports.loadConfig = loadConfig;
 function loadConfig(){
 	// todo: validate functions in config so they don't
 	// crash chat if they throw errors or return invalid data
-	console.log("reloading config file ...");
+	console.log("Reloading config file ...");
 	try {
 		delete require.cache[require.resolve("./config.js")];
 		var s = require("./config.js");
 		S = s;
 	} catch(e) {
-		console.error("error loading config file:");
+		console.error("Error loading config file:");
 		console.error(e);
 		return;
 	}
@@ -91,7 +91,6 @@ function loadConfig(){
 	userlist.style = S.userlistStyle;
 	G.updateUserlist();
 	screen.render();
-	console.log("ok");
 }
 
 Room.drawList = function(text) {
@@ -104,6 +103,7 @@ Fs.watch("./config.js", function(){
 	loadConfig()
 })
 
+// for the prev/next room shortcuts
 exports.switchRoom = function(d) {
 	var i = Room.list.findIndex(x=>x===Room.current);
 	return Room.list[(i+d+Room.list.length)%Room.list.length].show();
@@ -120,39 +120,18 @@ exports.setInputHandler = function(func, bypassConsole) {
 			input.clearValue();
 			screen.render();
 			if (!bypassConsole && Room.current.name == "console") {
-				Room.list.console.print("<< "+C(text, undefined, [255,255,192]));
+				new Room('console').print("<< "+C(text, undefined, [255,255,192]));
 				try {
 					console.log(">>", eval(text));
 				} catch(e) {
 					console.error(e);
 				}
 			} else if (inputHandler) {
-					inputHandler(text, Room.current.name);
+				inputHandler(text, Room.current.name);
 			}
 			input.readInput();
 		});
 		setOn = true;
-	}
-}
-
-// print text to pane
-// text should be already formatted. there's no going back at this point
-function print(text, room, sender, normal) {
-	text = text.replace(/\n+$/, ""); //trim trailing newlines
-	if (room.name == "any") {
-		Room.list.forEach(room=>{
-			if (room.name != "console")
-				room.print(text, sender, normal);
-		});
-	} else if (room) { //should always happen then
-		room.print(text, sender, normal);
-		if (room !== Room.current) {
-			room.unread = true;
-			Room.updateList();
-		}
-		if (room.name != "console") {
-			Room.list.any.print(text, sender, normal, room);
-		}
 	}
 }
 
@@ -197,7 +176,7 @@ function format(message){
 // - normal message, and prev message was not a normal msg w/ same sender
 
 exports.message = function(text, room, user){
-	print(text, room, user, true);
+	room.print(text, user, true);
 }
 
 exports.drawingMessage = function(text, room, user){
@@ -210,24 +189,32 @@ exports.imageMessage = function(text, room, user){
 }
 
 exports.systemMessage = function (text, room) {
-	print(text, room);
+	room.print(text);
 }
 
+// idea:
+// alright so message coloring.
+// some stuff should be settable in config.js
+// maybe text/bg color per message type/room/user etc.
+// (maybe have a function that outputs colors?)
+// anyway, some things (idk maybe you want to highlight your name in messages)
+// shouldn't be builtin, and can be a part of the message event chatjs thing
+// anyway print needs a way to set bg color per-message
 exports.warningMessage = function (text, room) {
-	print(text, room);
+	room.print(C(text, [192,0,0]));
 }
 
 exports.log = function(a) {
-	print(a, Room.list.console);
+	new Room("console").print(a);
 }
 
 exports.moduleMessage = function (text, room, user) {
 	var username = user ? user.username : null;
 	// highlight names in /me messages
 	if (username && text.substr(0, username.length+1) == username+" ") {
-		print(S.formatModuleUsername(user)+C(text.substr(username.length),[64,64,64]), room, user, false);
+		room.print(S.formatModuleUsername(user)+C(text.substr(username.length),[64,64,64]), user, false);
 	} else {
-		print(C(text,[64,64,64]), room, user, false);
+		room.print(C(text,[64,64,64]), user, false);
 	}
 }
 
