@@ -54,6 +54,7 @@ Room.prototype.makeBox = function(){
 	});
 };
 
+// maybe put this in User
 var lastUserlist = [];
 exports.updateUserlist = function(newUserlist = lastUserlist){
 	lastUserlist = newUserlist;
@@ -152,6 +153,18 @@ function print(text, room, sender, normal) {
 			Room.list.any.print(text, sender, normal, room);
 		}
 	}
+}
+
+exports.onSuspend = function() {
+	screen.leave();
+}
+// I can't get this to work :(
+exports.onResume = function() {
+	screen.enter();
+	screen.postEnter();
+	screen.program.put.keypad_xmit();
+	screen.program.input.setRawMode(true);
+	screen.render();	
 }
 
 exports.scrollCurrent = function(amount, page) {

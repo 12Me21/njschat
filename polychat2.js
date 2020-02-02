@@ -74,6 +74,16 @@ class PolyChat {
 			});
 			break;
 		case "response":
+			/*maybe if (json.from=="bind"){
+				if(!json.result){
+					polyChat.close("You could not be authenticated");
+					console.warn("Reason: " + json.errors.join("\n"));
+				} else {
+					// normal chat gets a list of modules here, for whatever reason
+					polyChat.sendMessage({type:"request", request:"messageList"});
+					// BIND DONE!
+				}
+			}*/
 			this.onResponse(json);
 			break;
 		default:
@@ -246,7 +256,6 @@ class PolyChat {
 		for(var i=0; i<times; i++)
 			setTimeout(this._retrieveProxyMessages.bind(this, true), interval*i);
 	}
-
 }
 
 PolyChat.DefaultWebSocketURL = "ws://chat.smilebasicsource.com:45695/chatserver";

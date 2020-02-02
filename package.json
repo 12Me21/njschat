@@ -4,7 +4,9 @@
 	"description": "terminal sbs chat client",
 	"repository": "github:12Me21/njschat",
 	"license": "WTFPL",
-	"engines": {"node": ">=8.3.0"},
+	"engines": {
+		"node": ">=8.3.0"
+	},
 	"dependencies": {
 		"ws": "*",
 		"blessed": "*",

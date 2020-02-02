@@ -1,21 +1,5 @@
 // user!
 
-const Axios = require("axios");
-
-// limit an action to once every `interval` milliseconds
-var last = 0;
-function limit(interval, callback) {
-	var now = Date.now();
-	var ok = last + interval;
-	if (now >= ok){
-		last = now;
-		callback();
-	} else {
-		last = ok;
-		setTimeout(callback, ok-now);
-	}
-}
-
 class User {
 	constructor(user) {
 		var t = this;
@@ -60,55 +44,8 @@ class User {
 	
 	getColors() {};
 	
-	gotNickname(success) {
-		if (success)
-			this.nicknameCallbacks.forEach(x=>{
-				if (x)
-					x(this);
-			});
-		this.requestedNickname = false;
-		this.nicknameCallbacks = [];
-	}
-	
-	// if nickname is currently known, this will return immediately
-	// otherwise, it will call `callback` after requesting the name
 	getNickname(callback) {
-		if (this.nickname === undefined) {
-			this.nicknameCallbacks.push(callback);
-			if (!this.requestedNickname) {
-				this.requestedNickname = true;
-				limit(100, ()=>{
-					if (this.nickname !== undefined) {
-						// got nickname while waiting
-						this.gotNickname(true);
-					} else {
-						console.log("requesting nickname for "+this.username);
-						Axios.get("http://smilebasicsource.com/query/tinycomputerprograms?username="+this.username+"&program=nickname").then(response=>{
-							var nickname = unescape(response.data).replace(/\x1B/g,"");
-							if (nickname >= " " && nickname != "\r\n") {
-								this.nickname = nickname;
-								this.gotNickname(true);
-							} else {
-								this.nickname = false;
-								this.gotNickname(false);
-								// wait should this still activate the callbacks...
-							}
-						}).catch(error=>{
-							console.error("Nickname request failed");
-							console.error(error);
-							this.nickname = false;
-							this.gotNickname(false);
-						});
-					}
-				});
-			}
-			return null;
-		} else if (this.nickname === false) {
-			// user doesn't have a nickname set
-			return this.username;
-		} else {
-			return this.nickname;
-		}
+		return this.username;
 	}
 
 	// request a user by name (also have uid option?)

@@ -43,7 +43,7 @@ process.on("uncaughtException", (e)=>{ //UNLIMITED POWER
 });
 process.on("unhandledRejection", (e, p) => {
 	console.error(C("UNHANDLED REJECTION!",[255,255,255],[255,0,0]));
-	console.error(e);
+	//console.error(e);
 	console.error(p);
 });
 
@@ -55,20 +55,9 @@ const PolyChat = require("./polychat2.js");
 const Auth = require("./auth.js");
 const G = require("./screen.js");
 const Axios = require("axios");
+const API = require("./api.js");
 
-// temporary
-// I wonder if this is good enough (having to check .type and whatever)
-// I think I'll release this and maybe layer add a nicer system like
-var messageEvents = [
-  function(msg){
-		if (msg.type=="message" && msg.encoding=="text") {
-			var match = msg.text.match(/^\[rpl[23]\dnick] (.*?)'s name is now (.*)/);
-			if (match) {
-				msg.sender.nickname = match[2] || false;
-			}
-		}
-	}
-];
+//process.on("SIGCONT", G.onResume);
 
 function displayMessage(messageData){
 
@@ -97,7 +86,7 @@ function displayMessage(messageData){
 	} = messageData;
 	var text = messageData.text = stripHTML(message);
 	// todo: try/catch
-	messageEvents.forEach(x => x(messageData));
+	API.messageEvents.forEach(x => x(messageData));
 	
 	switch(type){
 	case "system":
@@ -146,56 +135,30 @@ var defaultRooms = [
 
 fakeStdout.callback = G.log;
 
-function encodeBase64(string) {
-	return Buffer.from(String(string), "binary").toString("base64");
-}
-
 // todo:
 // print important error messages (connection error, etc.) as
 // warnings
 
 // also temporary
-var commands = {
-	nick: function(params){
-		submitMessage("[rpl29nick] "+User.me.username+"'s name is now "+params);
-		// the nickname system uses a weird protocol uhhhh
-		// yeah can't wait for rp30 lol
-		function write_persistent(name, value){
-			function escape_name(name){ // why does this even exist lol I don't remember
-				// wait I think it was for like
-				// utf8?
-				var out=""
-				for(var i=0;i<name.length;i++){
-					var chr=name.charAt(i);
-					if(chr=="\0" || chr>="\x7F" || chr=="%")
-            out+=escape(chr);
-					else
-            out+=chr;
-				}
-				return out;
-			}
-			Axios.get("https://smilebasicsource.com/query/submit/varstore?nameb64="+encodeBase64(name)+"&valueb64="+encodeBase64(escape_name(value))+"&session="+polyChat.session);
-		}
-		write_persistent("nickname_tcf", params || "\r\n");
-	}
-};
 
 // wait what if this was a method on Room... (nnnn)
 function submitMessage(text, roomName = Room.current.name){
 	// idea: handle console input here instead of in screen.js
 	// ah except, we don't want console input to depend on the inputhandler
 	// being set to this function (it should be available always)
-	var match = text.match(/^\/(\w+)(?: (.*))?$/);
-	if (match && commands[match[1]]) {
-		commands[match[1]](match[2]||"");
-		return;
-	}
-	polyChat.sendMessage({
-		type: "message",
-		text: text,
-		tag: roomName,
-	});
+
+	//I feel like this should be able to modify room name
+	text = API.onSubmit(text, roomName);
+	
+	if (text)
+		polyChat.sendMessage({
+			type: "message",
+			text: text,
+			tag: roomName,
+		});
 }
+
+API.submitMessage = submitMessage;
 
 console.log("starting");
 
@@ -220,6 +183,7 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 	}
 	
 	polyChat = new PolyChat(useruid, auth, session, process.argv[2]=='-p')
+	API.polyChat = polyChat;
 	
 	if (override) {
 		polyChat.webSocketURL = override;
@@ -241,6 +205,8 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 	
 	polyChat.onList = function(msg) {
 		G.updateUserlist(msg.users);
+		// maybe this can take the msg.list, because that indicates
+		// which rooms still exist (since rooms can die)
 		Room.updateList();
 	};
 
