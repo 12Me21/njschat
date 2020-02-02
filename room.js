@@ -1,3 +1,4 @@
+'use strict';
 const C = require("./c.js");
 
 

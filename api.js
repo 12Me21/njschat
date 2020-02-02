@@ -67,8 +67,8 @@ API.onSubmit = function(text, roomName) {
 API.User = User; //this isn't very nice, but
 API.Room = Room; // for now...
 API.Axios = Axios;
-API.polyChat = null;
-API.submitMessage = null;
+//API.polyChat = null;
+API.send = null;
 
 // nickname function
 // This is a function that can output either sync or async
@@ -82,17 +82,21 @@ API.setNicknameHandler = function(func){
 // todo: maybe wait to load chatjs until
 // for example, User.me is set, etc.
 
-// Load chatjs
-var pathJoin = require("path").join;
-var chatjsfolder = pathJoin(__dirname, "chatjs");
-var Fs = require("fs");
-Fs.readdirSync(chatjsfolder).forEach(function(file){
-	if (/\.js$/.test(file)) {
-		try {
-			require(pathJoin(chatjsfolder, file));
-		} catch (e) {
-			console.error("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
-			//API.displayMessage.warning("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
+// this gets called once all the important API functions have been initialized
+// (after the user has logged in)
+API.onLoad = function() {
+	// Load chatjs
+	var pathJoin = require("path").join;
+	var chatjsfolder = pathJoin(__dirname, "chatjs");
+	var Fs = require("fs");
+	Fs.readdirSync(chatjsfolder).forEach(function(file){
+		if (/\.js$/.test(file)) {
+			try {
+				require(pathJoin(chatjsfolder, file));
+			} catch (e) {
+				console.error("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
+				//API.displayMessage.warning("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
+			}
 		}
-	}
-});
+	});
+}

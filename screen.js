@@ -1,3 +1,4 @@
+'use strict';
 const G = exports;
 var Blessed = require("blessed");
 var Fs = require("fs");

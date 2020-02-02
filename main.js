@@ -1,3 +1,5 @@
+'use strict';
+
 //nnnnn
 // so right now, when a Room is created, it's immediately added to Room.list (which is then displayed)
 // maybe it would be better to not do this, because rooms are created in PolyChat, so
@@ -34,7 +36,9 @@ class StreamToString extends require("stream").Writable {
 
 // set up error handling/console as soon as possible
 var fakeStdout = new StreamToString();
-global.console = console.Console(fakeStdout, fakeStdout);
+var Console = global.console.Console;
+delete global.console;
+global.console = Console(fakeStdout, fakeStdout);
 
 const C = require("./c.js");
 process.on("uncaughtException", (e)=>{ //UNLIMITED POWER
@@ -60,10 +64,10 @@ const Axios = require("axios");
 
 const API = require("./api.js");
 
-API.displayMessage = displayMessage;
+API.display = displayMessage;
 
 function displayMessage(messageData){
-
+	
 	function stripHTML(string){
 		return string
 			.replace(/\x1B/g,"")
@@ -138,6 +142,15 @@ var defaultRooms = [
 
 fakeStdout.callback = G.log;
 
+var QueryString = require("querystring");
+API.writePersistent = function(name, value, callback) {
+	Axios.post(
+		"https://smilebasicsource.com/query/submit/varstore",
+		QueryString.stringify({name: name, value: value, psession: polyChat.session}),
+		{headers: {"Content-Type":"application/x-www-form-urlencoded"}}
+	).then(callback); //maybe have a catch or something
+};
+
 // todo:
 // print important error messages (connection error, etc.) as
 // warnings
@@ -161,7 +174,7 @@ function submitMessage(text, roomName = Room.current.name){
 		});
 }
 
-API.submitMessage = submitMessage;
+API.sendMessage = submitMessage;
 
 console.log("starting");
 
@@ -221,7 +234,7 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 				console.warn("Reason: " + msg.errors.join("\n"));
 			} else {
 				// normal chat gets a list of modules here, for whatever reason
-				polyChat.sendMessage({type:"request", request:"messageList"});
+				polyChat.requestMessageList();
 				// BIND DONE!
 			}
 		} else {
@@ -232,6 +245,8 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 			}
 		}
 	};
+
+	API.onLoad();
 	
 	polyChat.start();
 })

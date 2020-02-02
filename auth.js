@@ -34,7 +34,7 @@ async function get_login(prompt){
 
 async function load_session(filename){
 	return new Promise(callback=>{
-		Fs.readFile(filename, (err, data)=>{
+		Fs.readFile(filename, "utf8", (err, data)=>{
 			callback(data);
 		});
 	});
