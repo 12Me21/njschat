@@ -55,9 +55,12 @@ const PolyChat = require("./polychat2.js");
 const Auth = require("./auth.js");
 const G = require("./screen.js");
 const Axios = require("axios");
-const API = require("./api.js");
 
 //process.on("SIGCONT", G.onResume);
+
+const API = require("./api.js");
+
+API.displayMessage = displayMessage;
 
 function displayMessage(messageData){
 
