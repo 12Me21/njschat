@@ -1,0 +1,324 @@
++--------------------------------------------+
+| Documentation for Chat WebSocket Interface |
++--------------------------------------------+
+
+# About #
+---------
+
+The SmileBASIC Source chat runs on websockets and has a (relatively) well
+defined interface that only infrequently changes. You must authenticate
+yourself with the server and all messages are exchanged in JSON format. 
+
+
+# Typical Steps Overview #
+--------------------------
+
+As a quick overview, these are the steps you might take to connect to the
+websocket chat:
+
+-Send login information to /query/submit/login
+-Retrieve session from "result" field from output of /query/submit/login
+-Send session to /query/request/chatauth?session=yourSession
+-Retrieve chatauth token from "result" field from output of
+ /query/request/chatauth?session=yourSession
+-Open a websocket connection to ws://direct.smilebasicsource.com:45695/chatserver
+-Send a "bind" message with your chatauth token and wait for the response
+-Begin parsing messageList and userList objects
+-Periodically send the "ping" message when you're active
+-Send message JSON objects when you need to send a message
+
+Please note that all "smilebasicsource.com" URLs can be subsituted for 
+"development.smilebasicsource.com" to use the development site. Please try to
+test on the development site until your project works so you don't bug people
+in chat.
+
+
+# Query API #
+-------------
+
+ALL website queries (such as login, chatauth request, etc.) use the same API.
+If you simply visit a query page in your browser, you will receive a JSON
+object that describes that particular API. The important returned fields are as
+follows:
+
+ "result" : The result of the API request (for instance, the auth token)
+ "queryok" : Whether or not the API understood your request
+ "errors" : An array of errors that occurred while processing your request
+ "inputvalues" : ANY input values the API understood
+ "requester" : Who is requesting the page (useful to see if the page accepted
+      your session)
+ "acceptedfields" : Information on which fields the API accepts and how it
+      accepts them (like POST/GET, the type, etc.)
+
+When you make a request to a query page, you should check to make sure that
+"requester" is set to you. If you don't see your username there, that means the
+page didn't accept your session token. Either pass a session cookie or pass the
+session in the URL with ?session=yourSessionID. Sessions are good for up to 1
+week (unless you purposefully logout). If the requester is valid, make sure
+that "queryok" is also valid; if you send a set of inputs the API doesn't
+understand, this field will be false. Finally, if you want to learn more about
+a particular query page, "acceptedfields" will tell you all about what a page
+accepts.
+
+
+# Login Session and Authentication #
+------------------------------------
+
+Before you connect to the chat, you must retrieve an authentication token from
+the website. This token identifies you when you connect to chat. To retrieve
+this token, you must first get a login session. You can either steal the
+session cookie from the browser or POST your username and password to the login
+API and retrieve the session that way. This guide assumes you are doing the
+latter.
+
+Send a POST request with username=yourUsername and password=md5(yourPassword)
+to the following URL (yes, your password MUST be md5 encoded before sending;
+this is an old requirement and your password is NOT stored in MD5 on the
+server):
+IMPORTANT: you MUST pass a session parameter, even though it is not used
+
+ https://smilebasicsource.com/query/submit/login?session=whatever
+
+Parse the JSON output and your login session will be in the "result" field.
+This session is valid for up to 1 week, so you can reuse it if you want*. Now
+take this result and send a GET request to the following URL (it can be POST,
+but you're not actually sending any data this time):
+
+ https://smilebasicsource.com/query/request/chatauth?session=yourSession
+
+If this succeeds, your chat authorization token will be in the "result" field
+in the JSON output. This token is good for up to 10 minutes outside of chat, or
+forever while in chat**. While you're at it, you should probably pull your "uid"
+from the "requester" field as well, since you'll need that to connect to chat
+too.
+
+* Performing a login will generate a new session every time. Please try to
+  conserve sessions, as each of these can be used to impersonate you.
+** Requesting the chatAuth over and over again will yield the same token if
+  that token has not expired yet. Don't worry about requesting multiple times
+
+
+# Connecting #
+--------------
+
+There are two websocket chats. While developing, please try to test on
+Development before moving to the main chat so you don't disturb anybody.
+
+The websocket chat URLs are:
+
+ [Main]:  ws://direct.smilebasicsource.com:45695/chatserver
+ [Development]:  ws://direct.smilebasicsource.com:45697/chatserver
+
+The wss protocol (websocket secure) is not supported at this time.
+
+Remember, all messages to and from chat should be JSON objects. Once you've
+opened the websocket, you will need to send the "bind" message, which tells 
+the chat who you are. The "bind" message is described in the next section.
+
+Your UID should be a number, but the type and key should be strings. "lessData"
+SHOULD be set to true, unless you absolutely need all the extra data (things
+like user badges, a bunch of garbage, etc.). Without lessData, responses will
+be about 10 times larger. I believe it defaults to true, but someone recently 
+made an API and said that it didn't, so just to be safe, make sure it's set to 
+true. All responses from the chat are also JSON, so you should wait for the 
+response object. The objects that the chat sends are described in the "Server
+JSON message formats" section
+
+
+# Client JSON message formats #
+-------------------------------
+
+** Bind **
+
+The first message you send to the server should be formatted like this:
+
+{
+   "type": "bind",
+   "uid": yourUID,
+   "lessData" : true,
+   "key": "yourChatAuth"
+}
+
+** Requests **
+
+You can request the current messages and users from the server. The server will
+send the latest 20(?) messages from each room when you send a messageList
+request:
+
+{
+   "type": "request",
+   "request": "messageList or userList"
+}
+
+Note that sending a request will get you both a "response" object AND the
+object you asked for. These will be two separate messages from the server.
+
+** Messages **
+
+When it's finally time for you to send your own message, format it like so:
+
+{
+   "type": "message",
+   "text": "Your message, silly!",
+   "key": "yourChatAuthkey",
+   "tag": "general/offtopic/admin/all/room_#"
+}
+
+The chat works on a "room" system where each message has a single tag to tell
+it which room to go in. "general" is the "Programming" tab where we talk about
+programming (sometimes). "offtopic" is where most people are and is basically
+anything. "admin" is specifically for admins and you can't post here unless
+you're an admin (but you can always see messages from the admin tab). Finally,
+each PM room has its own unique tag. You can see which pm rooms you're in with
+the userList object.
+
+** Ping **
+
+To keep yourself from appearing inactive, send this ping message when you're
+"available". I believe that setting "active" to false does NOT make you appear
+away though:
+
+{
+   "type": "ping",
+   "active": true/false
+}
+
+
+# Server JSON message formats #
+-------------------------------
+
+** Requests **
+
+Responses to requests (such as bind, etc.) are in the following format:
+
+{
+   "type": "response",
+   "id": uniqueMessageID,
+   "from": "bind/messageList/userList/etc.",
+   "result": true/false,
+   "errors": ["error1","error2",etc.],
+   "extras": {"somethingspecial":"whatever"}
+}
+   
+The "extras" field contains data specific to the request that produced it. Just
+inspect the field for various requests; none of the data there is actually
+important. For "bind", it sends the list of available modules in "modules".
+
+** MessageList **
+
+MessageList objects are sent automatically, or you can specifically request
+them yourself. For some reason, binding does NOT send out an initial
+messageList, even though it sends out the userlist. You should perform a
+messageList request after binding if you want to see anything.
+
+{
+   "type": "messageList",
+   "id": uniqueMessageID,
+   "messages": [ { messageObject }, { messageObject }, etc. ]
+}
+
+** Message Object **
+
+Each message is formatted in the following way (these are the messages included
+in the "messages" array from messageList):
+
+{
+   "type": "warning/system/module/message",
+   "id": uniqueMessageID,
+   "tag": "general/offtopic/admin/all/room_#",
+   "encoding": "image/code/raw/markdown/text/draw",
+   "subtype": "shutdown/join/leave/welcome/warning/blocked/none",
+   "safe": true/false,
+   "sender": { userObject },
+   "recipients": [uid1,uid2,etc.],
+   "message": "The actual message for this thing",
+   "time": "UTC time of message"
+}
+
+Most regular messages will be the "text" encoding type, but you should be
+prepared for other types. "draw" is the chatdraw format which is described in
+the chatDraw documentation. An image format simply means that the message
+consists of ONLY a link to an image; it is NOT the binary data for an image or
+anything like that. Likewise for code: it is just text that you MAY format as
+code if you wish. Markdown indicates that this message has markdown syntax and
+you MAY convert it if you wish, but it is once again just text. Raw may contain
+HTML, but is still just text. You can display this html or simply strip the
+tags... whatever you want.
+
+The "subtype" is used mainly for warning and system message types. This can be
+helpful if you need to know when the server shutdown, when you're blocked, etc.
+without having to parse the message itself to determine the meaning.
+
+** User Object **
+
+These aren't necessarily sent from the server DIRECTLY, but they're included in
+messages and userlists. To save typing, the information is only put here once:
+
+{
+   "username": "TheirNameOfCourse",
+   "stars": "User's Rank (Admin/Chat Moderator/etc.)",
+   "level": userIntegerRank,
+   "uid": userUID,
+   "joined": unixJoinTime,
+   "avatar": "/user_uploads/avatars/t14522398.png",
+   "active": true/false,
+   "banned": true/false,
+	"badges": []
+}
+
+"joined" is the unix timestamp for when the user joined. "active" is whether or
+not the user has had activity or sent a ping in a while.
+The badges list is empty, EXCEPT for user objects inside a room object. (probably a bug)
+ 
+** UserList **
+
+THIS is the object you'll actually get from chat to describe which users are
+currently in chat or not.
+
+{
+   "type": "userList",
+   "id": uniqueMessageID,
+   "users": [ { userObject1 }, { userObject2 }, etc. ],
+   "rooms" [ { roomObject1 }, { roomObject2 }, etc. ]
+}
+
+Remember, userObjects all have the format described in the previous section,
+including the userObjects within messages.
+
+** Room Object **
+
+(Missing from original documentation)
+These contain information about private rooms.
+the default rooms (general, offtopic, admin, any) are never sent
+in the room list, and are assumed to exist.
+They only contain the room "name" /room_\d+/ and a list of users in the room
+
+{
+	"name": "room_#",
+	"users": [ { userObject1 }, { userObject2 }, etc. ]
+}
+
+** Badges **
+
+Badge lists are mostly broken, and only sent by the server on user objects inside the "users" list in room objects (so you can only see a user's badges if you're in a pm room with them)
+here's the format anyway:
+
+{
+	"bid": badgeIdNumber,
+	"name": "badgeName",
+	"description": "badge description",
+	"groupname": "group name",
+	"groupdescription": "group description",
+	"givable": if badge can be given (by admins),
+	"hidden": if badge is hidden to users who don't have it,
+	"single": if badge is only awarded to one user,
+	"startergroup": if badge is starter badge,
+	"singlegroup": idk
+}
+
+I'm not sure what all these fields mean but it's probably documented somewhere
+
+groupname/description will be set to "False" (a string) if the badge is not in a group
+singlegroup appears to always be false
+
+badges also have a "value" field but this isn't sent in chat

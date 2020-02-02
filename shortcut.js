@@ -26,4 +26,8 @@ module.exports = function(G, input){
 	input.key("C-r", function(ch, key) {
 		G.loadConfig();
 	});
+	/*input.key("C-z", function(ch, key) {
+		G.onSuspend();
+		process.kill(process.pid, 'SIGSTOP');
+	});*/
 }

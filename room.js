@@ -1,5 +1,6 @@
 const C = require("./c.js");
 
+
 function indent(message, indent){
 	return indent+message.replace(/\n/g,"\n"+indent);
 }
@@ -14,9 +15,26 @@ class Room {
 			users = name.users;
 			name = name.name;
 		}
-		this.name = name;
-		this.users = users;
-		this.box = this.makeBox();
+		if (name == "none")
+			name = "any";
+		var t = this;
+		
+		if (Room.list[name]) {
+			t = Room.list[name];
+		} else { //new room
+			t.name = name;
+			t.box = t.makeBox();
+			Room.list.push(t);
+			Room.list[name] = t;
+			if (!Room.current)
+				t.show();
+			t.lastSender = null;
+			t.lastNormal = false;
+			// maybe this should update the room list
+		}
+		if (users)
+			t.users = users;
+		return t;
 	};
 	
 	static updateStyles() {
@@ -30,39 +48,30 @@ class Room {
 		});
 	}
 
-	replaceName(line, user, prefix) {
+	replaceName(line, user, realRoom) {
 		//var oldUser = this.nameLines[line]
 		//if (!oldUser) {//uh oh
 	//		console.warn("failed to replace name"); //todo: more info
 	//		return;
 		//	}
-		var text = "  "+user.formatMessageUsername(); //hardcoded indent :(
-		if (prefix)
-			text += " "+prefix;
+		var text = user.formatMessageUsername(); //hardcoded indent :(
+		//if (prefix)
+		//	text += " "+prefix;
 		this.box.setLine(line, text);
 		this.box.render();
 	}
 
 	static updateList(newRooms) {
-		// add new rooms to list
-		if (newRooms)
-			newRooms.forEach(room=>{
-				new Room(room).add();
-			});
+		// maybe have a function take a list of rooms
+		// from roomlist, and add the default rooms, and store this
+		// as "current rooms"
+		// separate from the full list, for purposes of interning and
+		// etc.
 		Room.drawList(Room.list.map(room=>room.tabLabel()).join(""));
 	};
 
 	messageLabel() {
 		return C("["+this.name+"]",[128,128,128]);
-	};
-
-	add() {
-		if (!Room.list[this.name]) {
-			Room.list.push(this);
-			Room.list[this.name]=this;
-			if (!Room.current)
-				this.show();
-		}
 	};
 	
 	show() {
@@ -94,25 +103,32 @@ class Room {
 		this.box.render();
 	};
 	
-	print(text, replaceLater, prefix) {
+	print(text, sender, normal, realRoom) {
+		
 		var scroll = this.atBottom();
-		this.last = null;
-		this.lastUser = null;
 		var pane = this.box;
-		var line = pane.lineCount();
+		
+		if ((!sender || sender != this.lastSender || this.lastRealRoom != realRoom) && this.name != "console") {
+			pane.pushLine("");
+		}
+		// normal message, needs name labelll
+		if (normal && sender && (!this.lastNormal || this.lastSender != sender || this.lastRealRoom != realRoom)) {
+			var line = pane.lineCount();
+			pane.pushLine(sender.formatMessageUsername());
+			sender.getNickname(user=>{
+				this.replaceName(line, user, realRoom);
+			});
+		}
+		this.lastNormal = normal;
+		this.lastSender = sender;
+		this.lastRealRoom = realRoom;
+		
 		pane.pushLine(text);
+		
 		if (scroll)
 			pane.setScrollPerc(100);
 		this.updateScrollbar();
 		this.box.render();
-		if (prefix)
-			text = indent(text, prefix);
-		if (replaceLater) {
-			//this.nameLines[line] = user;
-			replaceLater((user)=>{
-				this.replaceName(line, user, prefix);
-			});
-		}
 	};
 }
 
@@ -121,5 +137,14 @@ Room.list = []; // list of all rooms
 Room.current; // current room
 Room.scrollbarStyle = null;
 Room.formatName = null;
+
+/*new Room("console");
+new Room("general");
+new Room("offtopic");
+new Room("admin");
+new Room("any");*/
+// can't create the rooms here, because graphics/config aren't ready yet
+// This is kind of a problem, uh
+// just be careful about creating rooms, I guess
 
 module.exports = Room;

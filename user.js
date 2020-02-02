@@ -1,20 +1,5 @@
 // user!
 
-const Axios = require("axios");
-
-var last = 0;
-function limit(interval, callback) {
-	var now = Date.now();
-	var ok = last + interval;
-	if (now >= ok){
-		last = now;
-		callback();
-	} else {
-		last = ok;
-		setTimeout(callback, ok-now);
-	}
-}
-
 class User {
 	constructor(user) {
 		var t = this;
@@ -56,60 +41,21 @@ class User {
 			return this.username; // bad
 		return this.nickname;
 	}
-
+	
 	getColors() {};
 	
-	// if nickname is currently known, this will return immediately
-	// otherwise, it will call `callback` after requesting the name
 	getNickname(callback) {
-		if (this.nickname === undefined) {
-			this.nicknameCallbacks.push(callback);
-			if (!this.requestedNickname) {
-				this.requestedNickname = true;
-				limit(100, ()=>{
-					if (this.nickname !== undefined) {
-						// got nickname while waiting
-						this.nicknameCallbacks.forEach(x=>{
-							if (x)
-								x(this);
-						});
-					} else {
-						console.log("requesting nickname for "+this.username);
-						Axios.get("http://smilebasicsource.com/query/tinycomputerprograms?username="+this.username+"&program=nickname").then(response=>{
-							var body = response.data;
-							var nickname = unescape(body);
-							if (nickname >= " " && nickname != "\r\n") {
-								this.nickname = nickname;
-								this.nicknameCallbacks.forEach(x=>{
-									if (x)
-										x(this);
-								});
-							} else {
-								this.nickname = false;
-								// wait should this still activate the callbacks...
-							}
-						}).catch(error=>{
-							console.error("Nickname request failed");
-							console.error(error);
-							this.nickname = false;
-						});
-					}
-				});
-			}
-			return null;
-		} else if (this.nickname === false) {
-			// user doesn't have a nickname set
-			return this.username;
-		} else {
-			return this.nickname;
-		}
+		return this.username;
 	}
-	
+
+	// request a user by name (also have uid option?)
+	getUser(name, callback) {
+		
+	}
 }
 
 User.all = {}; //list of all users
 User.byName = {}; //all, by name
-User.lastNameRequest = 0;
-
+User.me = null; //yourself
 
 module.exports = User;

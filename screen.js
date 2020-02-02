@@ -54,6 +54,7 @@ Room.prototype.makeBox = function(){
 	});
 };
 
+// maybe put this in User
 var lastUserlist = [];
 exports.updateUserlist = function(newUserlist = lastUserlist){
 	lastUserlist = newUserlist;
@@ -115,21 +116,17 @@ exports.setInputHandler = function(func, bypassConsole) {
 	inputHandler = func;
 	if (!setOn) {
 		input.on("submit", function(text) {
-			if (!bypassConsole && Room.current == Room.list.console) {
-				input.clearValue();
-				screen.render();
-				G.log("<< " + text);
-				try{
-					console.log(">> ", eval(text));
+			input.clearValue();
+			screen.render();
+			if (!bypassConsole && Room.current.name == "console") {
+				Room.list.console.print("<< "+C(text, undefined, [255,255,192]));
+				try {
+					console.log(">>", eval(text));
 				} catch(e) {
 					console.error(e);
 				}
-			} else {
-				if (inputHandler) {
-					input.clearValue();
-					screen.render();
+			} else if (inputHandler) {
 					inputHandler(text, Room.current.name);
-				}
 			}
 			input.readInput();
 		});
@@ -137,48 +134,37 @@ exports.setInputHandler = function(func, bypassConsole) {
 	}
 }
 
-exports.onLoad = function(I, state){
-	G.updateUserlist(state.users);
-	Room.updateList(state.rooms);
-}
-
-G.Room = Room;
-
-exports.onUnload = function(){
-	screen.leave();
-	screen.destroy();
-}
-
 // print text to pane
 // text should be already formatted. there's no going back at this point
-function print(text, roomName, replaceThisLine) {
-	// TODO:
-	// replaceThisLine should be a function that, when called, will
-	// call its first argument, passing the new contents of that line
-	// so, for example,
-	// when printing a username that needs to be replaced with a nickname later, you would pass like
-	/*function(callback){
-		user.getNickname(function(){
-			callback("  "+user.formatMessageName());
-		});
-	}*/
-	text = text.replace(/\n+$/,""); //trim trailing newlines
-	var room = Room.list[roomName];
-	if (roomName=="any"){
+function print(text, room, sender, normal) {
+	text = text.replace(/\n+$/, ""); //trim trailing newlines
+	if (room.name == "any") {
 		Room.list.forEach(room=>{
 			if (room.name != "console")
-				room.print(text, replaceThisLine);
+				room.print(text, sender, normal);
 		});
 	} else if (room) { //should always happen then
-		room.print(text, replaceThisLine);
+		room.print(text, sender, normal);
 		if (room !== Room.current) {
 			room.unread = true;
 			Room.updateList();
 		}
-		if (roomName != "console") {
-			Room.list.any.print(text, replaceThisLine, room.messageLabel());
+		if (room.name != "console") {
+			Room.list.any.print(text, sender, normal, room);
 		}
 	}
+}
+
+exports.onSuspend = function() {
+	screen.leave();
+}
+// I can't get this to work :(
+exports.onResume = function() {
+	screen.enter();
+	screen.postEnter();
+	screen.program.put.keypad_xmit();
+	screen.program.input.setRawMode(true);
+	screen.render();	
 }
 
 exports.scrollCurrent = function(amount, page) {
@@ -188,10 +174,6 @@ exports.scrollCurrent = function(amount, page) {
 	//divider.setText(""+Room.current.box.childBase+" "+Room.current.box.childOffset+" "+Room.current.box.getScrollHeight()+" "+Room.current.box.getScroll());
 	Room.current.updateScrollbar();
 	screen.render();
-}
-
-exports.log = function(...a) {
-	print(a.join(" "), "console");
 }
 
 function indent(message, indent){
@@ -206,67 +188,46 @@ function format(message){
 	return C(message);
 }
 
-var namelines = [];
+// print a gap before message when:
+// - no sender
+// - sender is different than prev
 
-exports.message = function(text, roomName, user){
-	var room = Room.list[roomName];
-	var username = user ? user.username : null;
-	// alright all this needs to be handled better
-	// a nice thing would be like
-	// to handle most of this in Room
-	// too tire dto expliang/..
-	if (room && !(username && room.last == username)) {
-		if (room.lastUser != username)
-			print("", roomName);
-		var lines = room.box.lineCount();
-		var later;
-		if (user.nickname === undefined)
-			later = function(callback){
-				user.getNickname(callback);
-			};
-		print("  "+user.formatMessageUsername(), roomName, later);
-	}
-	print(indent(format(text),"   "), roomName);
-	room.last = username;
-	room.lastUser = username;
+// print username when:
+// - normal message, and prev message was not a normal msg w/ same sender
+
+exports.message = function(text, room, user){
+	print(text, room, user, true);
 }
 
-exports.drawingMessage = function(text, roomName, user){
+exports.drawingMessage = function(text, room, user){
 	//definitely at least like, show the color pallete or something
-	exports.message("[drawing]", roomName, user);
+	exports.message("[drawing]", room, user);
 }
 
-exports.imageMessage = function(text, roomName, user){
-	exports.message(text, roomName, user);
+exports.imageMessage = function(text, room, user){
+	exports.message(text, room, user);
 }
 
 exports.systemMessage = function (text, room) {
-	print("", room);
-	print(C(text,[64,64,64]), room);
+	print(text, room);
 }
 
 exports.warningMessage = function (text, room) {
-	print("", room);
-	print(C(text,[192,64,64]), room);
+	print(text, room);
 }
 
-exports.systemMessage = exports.moduleMessage = function (text, roomName, user) {
-	var room = Room.list[roomName];
+exports.log = function(a) {
+	print(a, Room.list.console);
+}
+
+exports.moduleMessage = function (text, room, user) {
 	var username = user ? user.username : null;
-	if (username && room.lastUser != username)
-		print("", roomName);
 	// highlight names in /me messages
-	if (username && text.substr(0,username.length+1) == username+" ") {
-		print(S.formatModuleUsername(user)+C(text.substr(username.length),[64,64,64]), roomName);
+	if (username && text.substr(0, username.length+1) == username+" ") {
+		print(S.formatModuleUsername(user)+C(text.substr(username.length),[64,64,64]), room, user, false);
 	} else {
-		print(C(text,[64,64,64]), roomName);
+		print(C(text,[64,64,64]), room, user, false);
 	}
-	room.lastUser = username;
-	//alright so it's very unlikely, but...
-	// technically someone could post a message, then have their name changed
-	// and then another person's name could be changed to their old name,
-	// and then if that person posts a message next, it'll be merged when it
-	// shouldn't...
 }
 
 /*screen.key("C-c", function(ch, key) {

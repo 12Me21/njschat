@@ -1,13 +1,13 @@
-var Console = require("console").Console;
-var User = require("./user.js");
-const URL = require("./url.js");
+//nnnnn
+// so right now, when a Room is created, it's immediately added to Room.list (which is then displayed)
+// maybe it would be better to not do this, because rooms are created in PolyChat, so
+// I mean, have a separate list for displaying, and update that manually, or something?
 
-var Stream = require("stream");
-class StreamToString extends Stream.Writable {
+class StreamToString extends require("stream").Writable {
 	constructor(x, callback){
 		super(x);
 		this.callback = callback;
-		this.dat = ""
+		this.dat = "";
 	}
 	set callback(callback){
 		this._callback = callback;
@@ -32,125 +32,206 @@ class StreamToString extends Stream.Writable {
 	}
 }
 
+// set up error handling/console as soon as possible
 var fakeStdout = new StreamToString();
 global.console = console.Console(fakeStdout, fakeStdout);
 
-var PolyChat = require("./polychat.js");
-var Auth = require("./auth.js");
-var I;
+const C = require("./c.js");
+process.on("uncaughtException", (e)=>{ //UNLIMITED POWER
+	console.error(C("UNCAUGHT EXCEPTION!",[255,255,255],[255,0,0]));
+	console.error(e);
+});
+process.on("unhandledRejection", (e, p) => {
+	console.error(C("UNHANDLED REJECTION!",[255,255,255],[255,0,0]));
+	//console.error(e);
+	console.error(p);
+});
 
-var polyChat = new PolyChat(console);
+require("./patch.js");
+const User = require("./user.js");
+const Room = require("./room.js");
+const URL = require("./url.js"); //replicates URL library for compatibility with old nodejs
+const PolyChat = require("./polychat2.js");
+const Auth = require("./auth.js");
+const G = require("./screen.js");
+const Axios = require("axios");
 
-var defaultRooms = [
-	{name: "console"},
-	{name: "general"},
-	{name: "offtopic"},
-	{name: "admin"},
-	{name: "any"},
-];
+//process.on("SIGCONT", G.onResume);
 
-var _auth;
-function submitMessage(msg){
-	msg.key = _auth;
-	polyChat.sendMessage(JSON.stringify(msg));
-}
+const API = require("./api.js");
 
-var state = {
-	user: {
-		uid: null,
-		name: null,
-	},
-	rooms: defaultRooms.slice(),
-	users: [],
-};
+API.displayMessage = displayMessage;
 
-global.reload =function(){
-	if (I) {
-		I.onUnload();
-		require.cache = {}; //bad...
-		I = require("./interfce.js");
-		I.onLoad(state, submitMessage, fakeStdout);
-		console.log(require.cache);
-	} else {
-		I = require("./interfce.js");
-		I.onLoad(state, submitMessage, fakeStdout);
+function displayMessage(messageData){
+
+	function stripHTML(string){
+		return string
+			.replace(/\x1B/g,"")
+			.replace(/<\/?\w+.*?>/g,"")
+			.replace(/&quot;/g,'"').replace(/&apos;/g,"'")
+			.replace(/&gt;/g,">").replace(/&lt;/g,"<")
+			.replace(/&amp;/g,"&");
+	}
+	
+	var {
+		module: module,
+		spamvalue: spamvalue,
+		tag: tag = new Room("any"),
+		encoding: encoding,
+		safe: safe = "unknown",
+		sender: sender = {},
+		sendtype: sendtype,
+		recipients: recipients = [],
+		type: type = "",
+		id: id = 0,
+		message: message,
+		time: time,
+	} = messageData;
+	var text = messageData.text = stripHTML(message);
+	// todo: try/catch
+	API.messageEvents.forEach(x => x(messageData));
+	
+	switch(type){
+	case "system":
+		G.systemMessage(text+" ("+sendtype+")", tag, sender);
+		break;
+	case "warning":
+		G.warningMessage(text, tag);
+		break;
+	case "module":
+		G.moduleMessage(text, tag, sender);
+		break;
+	case "message":
+		var encoding = messageData.encoding;
+		// so these encodings are "special"
+		if (encoding == "image")
+			G.imageMessage(text, tag, sender);
+		else if (encoding == "draw")
+			G.drawingMessage(text, tag, sender);
+		// everything else is mostly normal text
+		else
+			G.message(text, tag, sender);
+		break;
+	default:
+		console.error("unknown message type: "+type);
 	}
 }
+displayMessage.warning = function(text){
+	displayMessage({type:"warning",message:text});
+}
+displayMessage.system = function(text){
+	displayMessage({type:"system",message:text});
+}
+displayMessage.module = function(text){
+	displayMessage({type:"module",message:text});
+}
 
-reload();
+var polyChat;
+
+var defaultRooms = [
+	new Room("console"),
+	new Room("general"),
+	new Room("offtopic"),
+	new Room("admin"),
+	new Room("any"),
+];
+
+fakeStdout.callback = G.log;
+
+// todo:
+// print important error messages (connection error, etc.) as
+// warnings
+
+// also temporary
+
+// wait what if this was a method on Room... (nnnn)
+function submitMessage(text, roomName = Room.current.name){
+	// idea: handle console input here instead of in screen.js
+	// ah except, we don't want console input to depend on the inputhandler
+	// being set to this function (it should be available always)
+
+	//I feel like this should be able to modify room name
+	text = API.onSubmit(text, roomName);
+	
+	if (text)
+		polyChat.sendMessage({
+			type: "message",
+			text: text,
+			tag: roomName,
+		});
+}
+
+API.submitMessage = submitMessage;
 
 console.log("starting");
 
-Auth(I.prompt, "session.txt").then(function([user, auth, session, errors]){
+Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 	if (!user){
-		I.log("Failed to log in");
-		I.log(errors.join("\n"));
+		console.warn("Failed to log in");
+		console.warn(errors.join("\n"));
 		return;
 	}
-	I.setInputHandler(function(text, room){
-		submitMessage({
-			type: "message",
-			text: text,
-			tag: room,
-		});
-	});
+
+	User.me = new User(user); //not complete, will be updated by userlist + messages
 	var {uid: useruid, username: username} = user;
-	_auth = auth;
-	polyChat.session = session;
 	
+	G.setInputHandler(submitMessage, false);
+
+	// ws url override argument
 	var override = null;
-	if (process.argv[2] && new URL(process.argv[2])) {
+	if (process.argv[2] && new URL(process.argv[2]).host) {
 		override = process.argv[2];
 	} else {
 		override = require("./config.js").websocketUrl;
 	}
+	
+	polyChat = new PolyChat(useruid, auth, session, process.argv[2]=='-p')
+	API.polyChat = polyChat;
+	
 	if (override) {
 		polyChat.webSocketURL = override;
 		console.log("Using custom websocket url: "+polyChat.webSocketURL);
 	}
 	
-	polyChat.start(useruid, auth, process.argv[2]=='-p'?PolyChat.ForceXHR:PolyChat.ForceWebsockets);
-	if (polyChat.webSocket)
+	if (!polyChat.forceXHR)
 		console.log("if chat is using websockets and fails to connect, try -p flag to use https proxy");
+	
 	var firstMessageList = false;
-	polyChat.onMessage = function(msg){
-		switch(msg.type){
-		case "userList":
-			state.rooms = defaultRooms.concat(msg.rooms);
-			state.users = msg.users.map(user=>new User(user));
-			I.updateUserlist(state.users);
-			I.updateRoomlist(state.rooms);
-			break;
-		case "messageList":
-			if (!firstMessageList) {
-				firstMessageList = true;
-				console.log("Got first message list :D");
-			}
-			msg.messages.forEach(I.displayMessage);
-			break;
-		case "response":
-			if (msg.from=="bind"){
-				if(!msg.result){
-					polyChat.close("You could not be authenticated");
-					I.log("Reason:" + errors.join("\n"));
-				} else {
-					// normal chat gets a list of modules here, for whatever reason
-					polyChat.sendMessage(JSON.stringify({
-						type:"request", request:"messageList"
-					}));
-					// BIND DONE!
-				}
+	
+	polyChat.onMessage = function(message){
+		if (!firstMessageList) {
+			firstMessageList = true;
+			console.log("Got first message list :D");
+		}
+		displayMessage(message);
+	};
+	
+	polyChat.onList = function(msg) {
+		G.updateUserlist(msg.users);
+		// maybe this can take the msg.list, because that indicates
+		// which rooms still exist (since rooms can die)
+		Room.updateList();
+	};
+
+	polyChat.onResponse = function(msg) {
+		//honestly this could probably be done by polychat too uwu
+		if (msg.from=="bind"){
+			if(!msg.result){
+				polyChat.close("You could not be authenticated");
+				console.warn("Reason: " + msg.errors.join("\n"));
 			} else {
-				if (!msg.result) {
-					msg.errors.forEach(error=>{
-						I.displayMessage.warning("Received error response from chat: " + error);
-					});
-				}
+				// normal chat gets a list of modules here, for whatever reason
+				polyChat.sendMessage({type:"request", request:"messageList"});
+				// BIND DONE!
 			}
-			break;
-		default:
-			I.log("RECEIVED UNKNOWN TYPE: " + msg.type);
+		} else {
+			if (!msg.result) {
+				msg.errors.forEach(error=>{
+					displayMessage.warning("Received error response from chat: " + error);
+				});
+			}
 		}
 	};
-	I.onConnect();
+	
+	polyChat.start();
 })
