@@ -4,3 +4,4 @@ node_modules
 session.txt
 package-lock.json
 old
+err.txt

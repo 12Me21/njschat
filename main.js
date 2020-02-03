@@ -54,7 +54,6 @@ process.on("unhandledRejection", (e, p) => {
 require("./patch.js");
 const User = require("./user.js");
 const Room = require("./room.js");
-const URL = require("./url.js"); //replicates URL library for compatibility with old nodejs
 const PolyChat = require("./polychat2.js");
 const Auth = require("./auth.js");
 const G = require("./screen.js");
@@ -185,9 +184,16 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 
 	// ws url override argument
 	var override = null;
-	if (process.argv[2] && new URL(process.argv[2]).host) {
-		override = process.argv[2];
-	} else {
+
+	if (process.argv[2]) {
+		// if arg 1 is a valid url, override the websocket url
+		const Url = require("url");
+		var url = Url.parse(process.argv[2], false, true);
+		if (url && url.host)
+			override = process.argv[2];
+	}
+	// otherwise, try loading override from config.js
+	if (!override) {
 		override = require("./config.js").websocketUrl;
 	}
 	
