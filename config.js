@@ -48,7 +48,7 @@ exports.inputStyle = {
 
 exports.dividerStyle = {
 	fg: "#FFFFFF",
-	bg: "#00C8B4",
+	bg: [0,150,136],
 };
 
 exports.roomlistStyle = {

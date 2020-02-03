@@ -15,7 +15,6 @@ async function login2session(username, passwordhash){
 
 // session token -> chat auth key
 async function session2auth(session){
-	console.log("Getting auth");
 	var response = await Axios.get("https://smilebasicsource.com/query/request/chatauth?session="+session);
 	var data = response.data;
 	if (data.result)
@@ -34,7 +33,7 @@ async function get_login(prompt){
 
 async function load_session(filename){
 	return new Promise(callback=>{
-		Fs.readFile(filename, (err, data)=>{
+		Fs.readFile(filename, "utf8", (err, data)=>{
 			callback(data);
 		});
 	});
@@ -61,7 +60,6 @@ async function get_session(prompt, filename, force){
 }
 
 module.exports = async function(prompt, filename) {
-	console.log("auth.js");
 	var session = await get_session(prompt, filename);
 	var [auth, user, errors] = await session2auth(session);
 	if (auth)

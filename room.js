@@ -1,9 +1,18 @@
+'use strict';
 const C = require("./c.js");
 
 
 function indent(message, indent){
 	return indent+message.replace(/\n/g,"\n"+indent);
 }
+
+// special rooms:
+// 'any': all messages except in 'console' will print here too
+//        messages in 'any' will be printed to all rooms except 'console'
+// 'console': does not interact with 'any', input does not send
+// In practice, the rooms that will exist are:
+// 'console', 'general', 'offtopic', 'admin', 'any', and private rooms,
+// which have names like 'room_1234'
 
 class Room {
 	makeBox() {}; // function to make new list element
@@ -48,11 +57,15 @@ class Room {
 		});
 	}
 
+	// todo: maybe have a room name function
+	// which can generate room name based on users + internal name etc.
+	// ooh idea: maybe use the userlist bar to show users in pm rooms when selected? no, but uhh, there does need to be a way to do that lol
+	
 	replaceName(line, user, realRoom) {
 		//var oldUser = this.nameLines[line]
 		//if (!oldUser) {//uh oh
-	//		console.warn("failed to replace name"); //todo: more info
-	//		return;
+		//		console.warn("failed to replace name"); //todo: more info
+		//		return;
 		//	}
 		var text = user.formatMessageUsername(); //hardcoded indent :(
 		//if (prefix)
@@ -102,12 +115,32 @@ class Room {
 		}
 		this.box.render();
 	};
+
+	// print text to pane
+	// text should be already formatted. there's no going back at this point
+	print(text, sender, normal) { // this handles the "any" tab etc.
+		text = text.replace(/\n+$/, ""); //trim trailing newlines
+		if (this.name === 'any') {
+			// print room=any messages in all rooms except console
+			Room.list.forEach(room=>{
+				if (room.name != 'console')
+					room._print(text, sender, normal);
+			});
+		} else {
+			// print normal messages in their room + 'any' (unless it's console)
+			this._print(text, sender, normal);
+			if (this !== Room.current) {
+				this.unread = true;
+				Room.updateList();
+			}
+			if (this.name != 'console')
+				new Room('any')._print(text, sender, normal, this);
+		}
+	}
 	
-	print(text, sender, normal, realRoom) {
-		
+	_print(text, sender, normal, realRoom) {
 		var scroll = this.atBottom();
 		var pane = this.box;
-		
 		if ((!sender || sender != this.lastSender || this.lastRealRoom != realRoom) && this.name != "console") {
 			pane.pushLine("");
 		}

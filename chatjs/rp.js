@@ -1,45 +1,15 @@
 const API = require("../api.js");
 
 API.addCommand("nick", "set your nickname", function(params) {
-	// The nickname protocol is a bit weird, because of backwards compatibility etc.
-	API.submitMessage("[rpl29nick] "+API.User.me.username+"'s name is now "+params);
-	// the nickname system uses a weird protocol uhhhh
-	// yeah can't wait for rp30 lol
-	function write_persistent(name, value) {
-		
-		function escape_name(name) {
-			// why does this even exist lol I don't remember
-			// wait I think it was for like
-			// utf8?
-			var out = ""
-			for(var i=0; i<name.length; i++){
-				var chr = name.charAt(i);
-				if(chr=="\0" || chr>="\x7F" || chr=="%")
-					out += escape(chr);
-				else
-					out += chr;
-			}
-			return out;
-		}
-		function encodeBase64(string) {
-			return Buffer.from(String(string), "binary").toString("base64");
-		}
-		API.Axios.get(
-			"https://smilebasicsource.com/query/submit/varstore"+
-				"?nameb64="+encodeBase64(name)+
-				"&valueb64="+encodeBase64(escape_name(value))+
-				"&session="+API.polyChat.session
-		);
-	}
-	write_persistent("nickname_tcf", params || "\r\n");
+	API.sendMessage("[rpl29nick] "+API.User.me.username+"'s name is now "+params);
+	API.writePersistent("nickname_tcf", params || "\r\n");
 });
 
 API.messageEvents.push(function(msg){
 	if (msg.type=="message" && msg.encoding=="text") {
 		var match = msg.text.match(/^\[rpl[23]\dnick] (.*?)'s name is now (.*)/);
-		if (match) {
+		if (match)
 			msg.sender.nickname = match[2] || false;
-		}
 	}
 });
 
