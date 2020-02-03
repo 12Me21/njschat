@@ -1,0 +1,25 @@
+Better any tab:
+- label messages with origin tab somehow (text labels, bg color, whatever (this should be configurable))
+- ability to view while posting to a different tab
+
+chatjs API:
+- support for existing scripts? compatibility layer for browser chat?
+- global vars, or keep everything inside API object?
+- decide on function names, silly
+- maybe better message event handlers (define which message type/etc. to call it on rather than needing if() inside the function)
+-- like: API.onMessage({type:"system", subtype:"leave"}, function(msg){ ... idk
+
+rp version 3:
+- store data in json or something
+- more fields
+- maybe use /me instead of normal messages?
+
+Input:
+- completely rewrite textbox input system to support cursor movements etc.
+- better shortcuts
+- maybe support process suspend / restore (for some reason I can't get blessed to re-initialize properly on being resumed)
+
+Connection:
+- auto-detect websocket being blocked
+- gosh wouldn't it be nice to have a http proxy server that uses long polling...
+- ask random to pwease give me the code for the pwoxy server owo because IDK how some parts of that work...

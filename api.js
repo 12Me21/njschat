@@ -46,8 +46,7 @@ API.addCommand = function(name, desc, func) {
 API.tryCommands = function(text) {
 	var match = text.match(/^\/(\w+)(?: (.*))?$/);
 	if (match && API.commands[match[1]]) {
-		API.commands[match[1]](match[2]||"");
-		return true;
+		return !API.commands[match[1]](match[2]||"");
 	}
 	return false;
 }
@@ -97,6 +96,19 @@ API.onLoad = function() {
 				console.error("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
 				//API.displayMessage.warning("Error while loading chatjs script '"+file+"':"+"\n"+e.stack);
 			}
+		}
+	});
+
+	API.addCommand("help", "Get help for local commands", function(params){
+		if (params==="local") {
+			var message = "--Local Javascript Commands--\n";
+			for (command in API.commands) {
+				message += "/"+command+" => "+API.commands[command].description+"\n"
+			}
+			API.display.module(message.slice(0,-1));
+		} else {
+			API.display.module("Type /help local for help with local commands");
+			return true;
 		}
 	});
 }

@@ -1,3 +1,5 @@
+//todo: this shouldn't reset bg color at the end if it's not specified
+// also add support for underline etc.
 module.exports = function(text,fg,bg){
 	//text = text.replace(/\x1B/g,"");
 	var ctl = "";
@@ -15,3 +17,8 @@ let Credits    =
    randomous   ,
     Yttria     ,
     chicken    ;
+
+let Resources = {
+   http://scratch.smilebasicsource.com/ChatWebsocketInterface.html
+1, http://docs.google.com/document/d/1vTx9lPLu4dWpSr2spxnFyjHoQHTGgf-oWuTHHqjAqfE
+1};
