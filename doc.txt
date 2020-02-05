@@ -1,0 +1,101 @@
+=== Client ===
+
+Bind:
+	"type": "bind",
+   "uid": yourUID,
+   "lessData" : true,
+   "key": "yourChatAuth"
+
+Requests:
+   "type": "request",
+   "request": "messageList or userList"
+
+Messages:
+	"type": "message",
+	"text": "Your message, silly!",
+	"key": "yourChatAuthkey",
+	"tag": "general/offtopic/admin/all/pmroom#"
+*pm room names are `room_<number>`
+
+Ping:
+   "type": "ping",
+   "active": true/false
+
+=== Server ===
+
+Requests:
+   "type": "response",
+	"id": uniqueMessageID,
+	"from": "bind/messageList/userList/etc.",
+	"result": true/false,
+	"errors": ["error1","error2",etc.],
+	"extras": {"somethingspecial":"whatever"}
+
+MessageList:
+   "type": "messageList",
+	"id": uniqueMessageID,
+	"messages": [ { messageObject }, { messageObject }, etc. ]
+
+Message Object:
+   "type": "warning/system/module/message",
+	"id": uniqueMessageID,
+	"tag": "general/offtopic/admin/all/pmroom#",
+	"encoding": "image/code/raw/markdown/text/draw",
+	"subtype": "shutdown/join/leave/welcome/warning/blocked/none",
+	"safe": true/false,
+	"sender": { userObject },
+	"recipients": [uid1,uid2,etc.],
+	"message": "The actual message for this thing",
+	"time": "UTC time of message"
+
+User Object:
+	"username": "TheirNameOfCourse",
+	"stars": "User's Rank (Admin/Chat Moderator/etc.)",
+	"level": userIntegerRank,
+	"uid": userUID,
+	"joined": unixJoinTime,
+	"avatar": "full(?)linkToUserAvatar",
+	"active": true/false,
+	"banned": true/false
+*avatar link is not full link
+
+UserList:
+   "type": "userList",
+	"id": uniqueMessageID,
+	"users": [ { userObject1 }, { userObject2 }, etc. ],
+	"rooms" [ { roomObject1 }, { roomObject2 }, etc. ]
+
+=== Proxy ===
+
+Start Proxy:
+	"type": "proxyStart",
+	"proxyID": proxy id (string) can be anything but future messages must use same value
+
+Send Message:
+	"type": "proxySend",
+	"proxyID": id passed to proxyStart,
+	"data": message data (this is passed directly to websocket, so must be json encoded)
+	"encoding": optional, if "base64", data must be base64 encoded (on top of json) (but why would you ever do this?)
+
+Recieve:
+	"type": "proxyReceive",
+	"proxyID": id passed to proxyStart,
+	"lastretrieve": optional. if you use this, you should pass the last lastretrieve value that you recieved as a response.
+
+Disconnect:
+	"type": "proxyEnd",
+	"proxyID": id,
+
+This data should be encoded as json, and passed as the body of the POST request you make, as the field named "data" (in practice this means either urlencoded or formdata)
+you can also use the base64 GET interface with ?b64Data=... in the url
+
+proxy response:
+
+if lastretrieve was not supplied:
+   "response": [ <list of websocket messages> ]
+if it was:
+	"response": {
+		"messages": [ <list of websocket messages> ],
+		"lastretrieve": ...
+	}
+you should store the value of lastretrieve and pass it next time you make a proxyReceive request

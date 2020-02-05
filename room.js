@@ -47,7 +47,7 @@ class Room {
 	};
 	
 	static updateStyles() {
-		Room.list.forEach(room=>{
+		Room.list.forEach((room)=>{
 			//console.log(room.box.style);
 			var s = room.style();
 			room.box.style.fg = s.fg;
@@ -56,11 +56,10 @@ class Room {
 			room.updateScrollbar();
 		});
 	}
-
+	
 	// todo: maybe have a room name function
 	// which can generate room name based on users + internal name etc.
 	// ooh idea: maybe use the userlist bar to show users in pm rooms when selected? no, but uhh, there does need to be a way to do that lol
-	
 	replaceName(line, user, realRoom) {
 		//var oldUser = this.nameLines[line]
 		//if (!oldUser) {//uh oh
@@ -73,7 +72,7 @@ class Room {
 		this.box.setLine(line, text);
 		this.box.render();
 	}
-
+	
 	static updateList(newRooms) {
 		// maybe have a function take a list of rooms
 		// from roomlist, and add the default rooms, and store this
@@ -82,7 +81,7 @@ class Room {
 		// etc.
 		Room.drawList(Room.list.map(room=>room.tabLabel()).join(""));
 	};
-
+	
 	messageLabel() {
 		return C("["+this.name+"]",[128,128,128]);
 	};
@@ -115,7 +114,7 @@ class Room {
 		}
 		this.box.render();
 	};
-
+	
 	// print text to pane
 	// text should be already formatted. there's no going back at this point
 	print(text, sender, normal) { // this handles the "any" tab etc.

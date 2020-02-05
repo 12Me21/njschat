@@ -21,5 +21,9 @@ Input:
 
 Connection:
 - auto-detect websocket being blocked
-- gosh wouldn't it be nice to have a http proxy server that uses long polling...
-- ask random to pwease give me the code for the pwoxy server owo because IDK how some parts of that work...
+
+- Better command line argument handling maybe
+
+- it would be nice if chatjs scripts didn't have access to your chatauth/session but I don't think that's practical
+
+- print important error messages as warningmessages in chat

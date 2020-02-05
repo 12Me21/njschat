@@ -5,7 +5,7 @@
 // maybe it would be better to not do this, because rooms are created in PolyChat, so
 // I mean, have a separate list for displaying, and update that manually, or something?
 
-class StreamToString extends require("stream").Writable {
+class StreamToString extends require('stream').Writable {
 	constructor(x, callback){
 		super(x);
 		this.callback = callback;
@@ -40,33 +40,34 @@ var Console = global.console.Console;
 delete global.console;
 global.console = Console(fakeStdout, fakeStdout);
 
-const C = require("./c.js");
-process.on("uncaughtException", (e)=>{ //UNLIMITED POWER
+const C = require('./c.js');
+process.on('uncaughtException', (e)=>{ //UNLIMITED POWER
 	console.error(C("UNCAUGHT EXCEPTION!",[255,255,255],[255,0,0]));
 	console.error(e);
 });
-process.on("unhandledRejection", (e, p) => {
+process.on('unhandledRejection', (e, p) => {
 	console.error(C("UNHANDLED REJECTION!",[255,255,255],[255,0,0]));
 	//console.error(e);
 	console.error(p);
 });
 
-require("./patch.js");
-const User = require("./user.js");
-const Room = require("./room.js");
-const PolyChat = require("./polychat2.js");
-const Auth = require("./auth.js");
-const G = require("./screen.js");
-const Axios = require("axios");
+require('./patch.js');
+const User = require('./user.js');
+const Room = require('./room.js');
+const PolyChat = require('./polychat2.js');
+const SBSAuth = require('./auth2.js');
+const G = require('./screen.js');
+const Axios = require('axios');
+
+
 
 //process.on("SIGCONT", G.onResume);
 
-const API = require("./api.js");
+const API = require('./api.js');
 
 API.display = displayMessage;
 
 function displayMessage(messageData){
-	
 	function stripHTML(string){
 		return string
 			.replace(/\x1B/g,"")
@@ -77,9 +78,9 @@ function displayMessage(messageData){
 	}
 	
 	var {
-		tag: tag = new Room("any"),
-		sender: sender = {},
-		type: type = "",
+		tag: tag = new Room('any'),
+		sender: sender,
+		type: type,
 		message: message,
 		//time: time,
 	} = messageData;
@@ -88,22 +89,22 @@ function displayMessage(messageData){
 	API.messageEvents.forEach(x => x(messageData));
 	
 	switch(type){
-	case "system":
+	case 'system':
 		G.systemMessage(text+" ("+messageData.sendtype+")", tag, sender);
 		break;
-	case "warning":
+	case 'warning':
 		G.warningMessage(text, tag);
 		break;
-	case "module":
+	case 'module':
 		var module = messageData.module;
 		G.moduleMessage(text, tag, sender);
 		break;
-	case "message":
+	case 'message':
 		var encoding = messageData.encoding;
 		// so these encodings are "special"
-		if (encoding == "image")
+		if (encoding == 'image')
 			G.imageMessage(text, tag, sender);
-		else if (encoding == "draw")
+		else if (encoding == 'draw')
 			G.drawingMessage(text, tag, sender);
 		// everything else is mostly normal text
 		else
@@ -114,34 +115,36 @@ function displayMessage(messageData){
 	}
 }
 displayMessage.warning = function(text){
-	displayMessage({type:"warning",message:text});
+	displayMessage({type:'warning',message:text});
 }
 displayMessage.system = function(text){
-	displayMessage({type:"system",message:text});
+	displayMessage({type:'system',message:text});
 }
 displayMessage.module = function(text){
-	displayMessage({type:"module",message:text});
+	displayMessage({type:'module',message:text});
 }
 
 var polyChat = new PolyChat();
 API.polyChat = polyChat;
 
 var defaultRooms = [
-	new Room("console"),
-	new Room("general"),
-	new Room("offtopic"),
-	new Room("admin"),
-	new Room("any"),
+	new Room('console'),
+	new Room('general'),
+	new Room('offtopic'),
+	new Room('admin'),
+	new Room('any'),
 ];
 
-fakeStdout.callback = G.log;
+fakeStdout.callback = function(a){
+	new Room('console').print(a);
+};
 
-var QueryString = require("querystring");
+var QueryString = require('querystring');
 API.writePersistent = function(name, value, callback) {
 	Axios.post(
 		"https://smilebasicsource.com/query/submit/varstore",
 		QueryString.stringify({name: name, value: value, psession: polyChat.session}),
-		{headers: {"Content-Type":"application/x-www-form-urlencoded"}}
+		{headers: {'Content-Type': 'application/x-www-form-urlencoded'}}
 	).then(callback); //maybe have a catch or something
 };
 
@@ -162,7 +165,7 @@ function submitMessage(text, roomName = Room.current.name){
 	
 	if (text)
 		polyChat.sendMessage({
-			type: "message",
+			type: 'message',
 			text: text,
 			tag: roomName,
 		});
@@ -170,46 +173,52 @@ function submitMessage(text, roomName = Room.current.name){
 
 API.sendMessage = submitMessage;
 
-Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
-	if (!user){
-		console.warn("Failed to log in");
-		console.warn(errors.join("\n"));
+var host = "https://smilebasicsource.com";
+var sessionFile = "session.txt";
+if (process.argv.includes("-d")) {
+	console.log("-d Using development site");
+	host = "https://randomouscrap98.smilebasicsource.com";
+	polyChat.webSocketURL = "ws://chat.smilebasicsource.com:45697/chatserver";
+	polyChat.proxyURL = "https://randomouscrap98.smilebasicsource.com/query/submit/chatproxy";
+	sessionFile = "session-dev.txt";
+}
+
+var useProxy = process.argv.includes("-p");
+if (useProxy) {
+	console.log("-p Using https proxy");
+}
+
+var override;
+var x = process.argv.indexOf("-w");
+if (x!=-1) {
+	override = process.argv[x+1];
+	console.log("-w Using custom websocket url: "+override);
+}
+
+new SBSAuth(G.prompt, sessionFile, host).logIn().then((auth)=>{
+	if (!auth) {
+		console.warn("Authentication failed. not connecting to chat");
 		return;
 	}
-
-	User.me = new User(user); //not complete, will be updated by userlist + messages
-	var {uid: useruid, username: username} = user;
-	
+	User.me = auth.user; //not complete, will be updated by userlist + messages later
 	G.setInputHandler(submitMessage, false);
-
-	// ws url override argument
-	var override = null;
-
-	if (process.argv[2]) {
-		// if arg 1 is a valid url, override the websocket url
-		const Url = require("url");
-		var url = Url.parse(process.argv[2], false, true);
-		if (url && url.host)
-			override = process.argv[2];
-	}
+	
 	// otherwise, try loading override from config.js
 	if (!override) {
-		override = require("./config.js").websocketUrl;
+		override = require('./config.js').websocketUrl;
 	}
 	
 	if (override) {
 		polyChat.webSocketURL = override;
-		console.log("Using custom websocket url: "+polyChat.webSocketURL);
 	}
 	
+	API.onLoad();
+	polyChat.start(auth.user.uid, auth.chatauth, auth.session, useProxy);
+
 	if (!polyChat.forceXHR)
 		console.log("if chat is using websockets and fails to connect, try -p flag to use https proxy");
 	
-	API.onLoad();
-	polyChat.start(useruid, auth, session, process.argv[2]=='-p');	
-	
 	var firstMessageList = false;
-	
 	polyChat.onMessage = function(message){
 		if (!firstMessageList) {
 			firstMessageList = true;
@@ -244,4 +253,4 @@ Auth(G.prompt, "session.txt").then(function([user, auth, session, errors]){
 			}
 		}
 	};
-})
+});

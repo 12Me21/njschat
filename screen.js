@@ -1,11 +1,14 @@
+// it would be nice to get some of the Shit out of this file
+
 'use strict';
 const G = exports;
-var Blessed = require("blessed");
-var Fs = require("fs");
-var C = require("./c.js");
-const Room = require("./room.js");
-const User = require("./user.js");
+var Blessed = require('blessed');
+var Fs = require('fs');
+var C = require('./c.js');
+const Room = require('./room.js');
+const User = require('./user.js');
 var S;
+var CONFIG_FILE = './config.js';
 
 var screen = Blessed.screen({
 	smartCSR: true,
@@ -19,7 +22,7 @@ var input = Blessed.textbox({
 	keys: true,
 });
 
-require("./shortcut.js")(G, input);
+require('./shortcut.js')(G, input); //this is bad 
 
 var divider = Blessed.box({
 	parent: screen,
@@ -70,8 +73,8 @@ function loadConfig(){
 	// crash chat if they throw errors or return invalid data
 	console.log("Reloading config file ...");
 	try {
-		delete require.cache[require.resolve("./config.js")];
-		var s = require("./config.js");
+		delete require.cache[require.resolve(CONFIG_FILE)];
+		var s = require(CONFIG_FILE);
 		S = s;
 	} catch(e) {
 		console.error("Error loading config file:");
@@ -99,7 +102,7 @@ Room.drawList = function(text) {
 }
 
 loadConfig(); //do this pretty soon
-Fs.watch("./config.js", function(){
+Fs.watch(CONFIG_FILE, function(){
 	loadConfig()
 })
 
@@ -116,10 +119,10 @@ exports.setInputHandler = function(func, bypassConsole) {
 	input.readInput();
 	inputHandler = func;
 	if (!setOn) {
-		input.on("submit", function(text) {
+		input.on('submit', function(text) {
 			input.clearValue();
 			screen.render();
-			if (!bypassConsole && Room.current.name == "console") {
+			if (!bypassConsole && Room.current.name == 'console') {
 				new Room('console').print("<< "+C(text, undefined, [255,255,192]));
 				try {
 					console.log(">>", eval(text));
@@ -204,10 +207,6 @@ exports.warningMessage = function (text, room) {
 	room.print(C(text, [192,0,0]));
 }
 
-exports.log = function(a) {
-	new Room("console").print(a);
-}
-
 exports.moduleMessage = function (text, room, user) {
 	var username = user ? user.username : null;
 	// highlight names in /me messages
@@ -217,10 +216,6 @@ exports.moduleMessage = function (text, room, user) {
 		room.print(C(text,[64,64,64]), user, false);
 	}
 }
-
-/*screen.key("C-c", function(ch, key) {
-	return process.exit(0);
-});*/
 
 // prompt input from input box
 // awaitma balls
