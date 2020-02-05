@@ -5,7 +5,7 @@ const Axios = require("axios");
 // username/password -> session token
 async function login2session(username, passwordhash){
 	var response = await Axios.post(
-		"https://smilebasicsource.com/query/submit/login?session=x&small=1",
+		"https://randomouscrap98.smilebasicsource.com/query/submit/login?session=x&small=1",
 		"username="+username+"&password="+passwordhash,
 		{headers: {"Content-Type":"application/x-www-form-urlencoded"}},
 	)
@@ -15,7 +15,7 @@ async function login2session(username, passwordhash){
 
 // session token -> chat auth key
 async function session2auth(session){
-	var response = await Axios.get("https://smilebasicsource.com/query/request/chatauth?session="+session);
+	var response = await Axios.get("https://randomouscrap98.smilebasicsource.com/query/request/chatauth?session="+session);
 	var data = response.data;
 	if (data.result)
 		return [data.result, data.requester];
@@ -47,7 +47,7 @@ function save_session(session, filename){
 // always returns a valid session if `force` is true
 async function get_session(prompt, filename, force){
 	if (!force)
-		session = await load_session(filename);
+		var session = await load_session(filename);
 	while (!session) {
 		[username, passwordhash] = await get_login(prompt);
 		session = await login2session(username, passwordhash);
@@ -59,7 +59,7 @@ async function get_session(prompt, filename, force){
 	return session;
 }
 
-module.exports = async function(prompt, filename) {
+module.exports = async function(prompt, filename, host) {
 	var session = await get_session(prompt, filename);
 	var [auth, user, errors] = await session2auth(session);
 	if (auth)
