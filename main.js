@@ -173,14 +173,22 @@ function submitMessage(text, roomName = Room.current.name){
 
 API.sendMessage = submitMessage;
 
-var host = "https://smilebasicsource.com";
+
 var sessionFile = "session.txt";
+var x = process.argv.indexOf("-s");
+if (x!=-1) {
+	sessionFile = process.argv[x+1];
+	console.log("-s Using session file: "+sessionFile);
+}
+
+var host = "https://smilebasicsource.com";
 if (process.argv.includes("-d")) {
 	console.log("-d Using development site");
 	host = "https://randomouscrap98.smilebasicsource.com";
 	polyChat.webSocketURL = "ws://chat.smilebasicsource.com:45697/chatserver";
 	polyChat.proxyURL = "https://randomouscrap98.smilebasicsource.com/query/submit/chatproxy";
-	sessionFile = "session-dev.txt";
+	sessionFile = "dev-"+sessionFile;
+	console.log("-s Using session file: "+sessionFile);
 }
 
 var useProxy = process.argv.includes("-p");
