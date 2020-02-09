@@ -130,7 +130,7 @@ exports.setInputHandler = function(func, bypassConsole) {
 					console.error(e);
 				}
 			} else if (inputHandler) {
-				inputHandler(text, Room.current.name);
+				inputHandler(text, Room.current);
 			}
 			input.readInput();
 		});

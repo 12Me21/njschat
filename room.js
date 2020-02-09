@@ -162,6 +162,10 @@ class Room {
 		this.updateScrollbar();
 		this.box.render();
 	};
+
+	toString() {
+		return "[Room "+this.name+"]";
+	}
 }
 
 Room.drawList = null; // function to update list graphics

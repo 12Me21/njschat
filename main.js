@@ -155,24 +155,28 @@ API.writePersistent = function(name, value, callback) {
 // also temporary
 
 // wait what if this was a method on Room... (nnnn)
-function submitMessage(text, roomName = Room.current.name){
+function submitMessage(text, room = Room.current){
 	// idea: handle console input here instead of in screen.js
 	// ah except, we don't want console input to depend on the inputhandler
 	// being set to this function (it should be available always)
-
-	//I feel like this should be able to modify room name
-	text = API.onSubmit(text, roomName);
+	
+	// I feel like this should be able to modify room
+	// this is an argument for making Message a class:
+	// then you would say new Message(text, roomname) uh
+	// wait no it would be special for sending but
+	// anyway then you could modify that in onSubmit etc.
+	text = API.onSubmit(text, room);
 	
 	if (text)
 		polyChat.sendMessage({
 			type: 'message',
 			text: text,
-			tag: roomName,
+			tag: room.name,
 		});
 }
 
 API.sendMessage = submitMessage;
-
+API.send = submitMessage;
 
 var sessionFile = "session.txt";
 var x = process.argv.indexOf("-s");

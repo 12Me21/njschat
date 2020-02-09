@@ -30,7 +30,7 @@ class User {
 	
 	formatMessageUsername() {};
 	formatUsername() {};
-
+	
 	// This will always either be the username, or nickname
 	// if nickname hasn't been recieved yet, it will default to username
 	// when using this, you should use the getNickname callback to
@@ -48,15 +48,20 @@ class User {
 	getNickname(callback) {
 		return this.username;
 	}
-
+	
 	// request a user by name (also have uid option?)
+	// I mean, request from sbs
 	getUser(name, callback) {
 		
 	}
+	
+	toString() {
+		return "[User "+this.username+"]";
+	}
 }
 
-User.all = {}; //list of all users
-User.byName = {}; //all, by name
+User.all = {}; //list of all loaded users (key = uid)
+User.byName = {}; //(key = username)
 User.me = null; //yourself
 
 module.exports = User;
