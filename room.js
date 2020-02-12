@@ -166,6 +166,8 @@ class Room {
 	toString() {
 		return "[Room "+this.name+"]";
 	}
+
+	post(text) {}
 }
 
 Room.drawList = null; // function to update list graphics

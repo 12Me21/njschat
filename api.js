@@ -43,22 +43,22 @@ API.addCommand = function(name, desc, func) {
 	API.commands[name] = func;
 };
 // todo: maybe some nice arg split function?
-API.tryCommands = function(text) {
+API.tryCommands = function(text, room = Room.current) {
 	var match = text.match(/^\/(\w+)(?: (.*))?$/);
 	if (match && API.commands[match[1]]) {
-		return !API.commands[match[1]](match[2]||"");
+		return !API.commands[match[1]](match[2]||"", room);
 	}
 	return false;
 }
 
-API.onSubmit = function(text, roomName) {
+API.onSubmit = function(text, room) {
 	API.submitEvents.forEach(event=>{
 		var temp = event(text);
 		if (typeof temp == "string")
 			text = temp;
 	})
 	
-	if (API.tryCommands(text))
+	if (API.tryCommands(text, room))
 		return;
 	return text;
 }

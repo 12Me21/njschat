@@ -38,7 +38,7 @@ class PolyChat {
 		this._connected = false;
 		this._lastretrieve = 0;
 	}
-	
+
 	_doOnMessage(json) {
 		switch (json.type) {
 		case 'userList':
@@ -104,13 +104,13 @@ class PolyChat {
 			});
 		}
 	}
-
-	start(uid, chatauth, session, forceXHR) {
+	
+	start(uid = this.uid, chatauth = this.chatauth, session = this.session, forceXHR = this.forceXHR) {
 		this.chatauth = chatauth;
 		this.session = session;
 		this.uid = uid;
 		this.forceXHR = forceXHR;
-
+		
 		console.info("Starting PolyChat with uid: " + this.uid);
 		var connectMessage = {type: 'bind', uid: this.uid};
 		
@@ -140,7 +140,7 @@ class PolyChat {
 			console.info("PolyChat will use XHR");
 			if (!this.session)
 				throw "XHR Polychat requires session token";
-
+			
 			console.info("Starting proxy. URL: "+this.proxyURL+", ID: "+this.proxyID);
 			this._sendProxyMessage('proxyStart', {}, (json)=>{
 				if(json.result !== -1) {

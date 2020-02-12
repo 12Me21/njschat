@@ -1,7 +1,7 @@
 const API = require("../api.js");
 
-API.addCommand("nick", "set your nickname", function(params) {
-	API.sendMessage("[rpl29nick] "+API.User.me.username+"'s name is now "+params);
+API.addCommand("nick", "set your nickname", function(params, room) {
+	room.post("[rpl29nick] "+API.User.me.username+"'s name is now "+params);
 	API.writePersistent("nickname_tcf", params || "\r\n");
 });
 

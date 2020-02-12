@@ -154,6 +154,18 @@ API.writePersistent = function(name, value, callback) {
 
 // also temporary
 
+Room.prototype.post = function(text) {
+	text = API.onSubmit(text, this);
+	
+	if (text)
+		polyChat.sendMessage({
+			type: 'message',
+			text: text,
+			tag: this.name,
+		});
+}
+
+/*
 // wait what if this was a method on Room... (nnnn)
 function submitMessage(text, room = Room.current){
 	// idea: handle console input here instead of in screen.js
@@ -165,18 +177,7 @@ function submitMessage(text, room = Room.current){
 	// then you would say new Message(text, roomname) uh
 	// wait no it would be special for sending but
 	// anyway then you could modify that in onSubmit etc.
-	text = API.onSubmit(text, room);
-	
-	if (text)
-		polyChat.sendMessage({
-			type: 'message',
-			text: text,
-			tag: room.name,
-		});
-}
-
-API.sendMessage = submitMessage;
-API.send = submitMessage;
+}*/
 
 var sessionFile = "session.txt";
 var x = process.argv.indexOf("-s");
@@ -213,7 +214,7 @@ new SBSAuth(G.prompt, sessionFile, host).logIn().then((auth)=>{
 		return;
 	}
 	User.me = auth.user; //not complete, will be updated by userlist + messages later
-	G.setInputHandler(submitMessage, false);
+	G.setInputHandler((text, room)=>room.post(text), false);
 	
 	// otherwise, try loading override from config.js
 	if (!override) {
@@ -226,7 +227,7 @@ new SBSAuth(G.prompt, sessionFile, host).logIn().then((auth)=>{
 	
 	API.onLoad();
 	polyChat.start(auth.user.uid, auth.chatauth, auth.session, useProxy);
-
+	
 	if (!polyChat.forceXHR)
 		console.log("if chat is using websockets and fails to connect, try -p flag to use https proxy");
 	
@@ -245,7 +246,7 @@ new SBSAuth(G.prompt, sessionFile, host).logIn().then((auth)=>{
 		// which rooms still exist (since rooms can die)
 		Room.updateList();
 	};
-
+	
 	polyChat.onResponse = function(msg) {
 		//honestly this could probably be done by polychat too uwu
 		if (msg.from=="bind"){
