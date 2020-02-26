@@ -8,15 +8,14 @@ class XTerm {
 	constructor(inp, out) {
 		this.o = out;
 		this.i = inp;
-		// these event listeners WILL CAUSE A MEMORY LEAK
-		// if you ever destroy a terminal object
-		process.on('exit', ()=>{
-			this.leave();
-		});
-		this.o.on('resize', ()=>{
-			this.width = this.o.columns;
-			this.height = this.o.rows;
-		});
+	}
+	
+	onKey(key) {
+		if (key == "\x03")
+			process.exit();
+	}
+	
+	updateSize(){
 		this.width = this.o.columns;
 		this.height = this.o.rows;
 	}
@@ -26,11 +25,20 @@ class XTerm {
 	}
 	
 	enter() {
-		//this.i.setRawMode(true);
+		process.on('exit', this.leave.bind(this));
+		this.updateSize();
+		this.o.on('resize', this.updateSize.bind(this));
+		this.i.on('data', this.onKey.bind(this));
+		
+		this.i.setRawMode(true);
 		this.write("\x1B[?1049h");
 	}
-	
+
+	// WARNING: this does not remove the event listeners
+	// it is assumed that you will never need to destroy
+	// an instance of this class before the program ends
 	leave() {
+		// should remove eventlistners :(
 		this.scrollRegion(0,999);
 		this.write("\x1B[?1049l");
 		this.i.setRawMode(false);
@@ -59,23 +67,28 @@ class XTerm {
 			this.write(`\x1B[H`);
 	}
 	
+	color(color) {
+		return `\x1B[48;5;${color}m`;
+	}
+	
 	fillLine(text, bg) {
-		this.write(`${text}${bg}\x1B[K`);
+		this.write(`${this.color(bg)}${text}\x1B[K`);
 	}
 }
 
 // interface level 2:
 // scrolling buffers
 class Scroll {
-	constructor(term, above = 0, below = 0, autoscroll, defaultbg = "\x1B[48m") {
+	constructor(term, above = 0, below = 0, autoscroll, stylesheet, className) {
 		this.above = above;
 		this.below = below;
 		this.lines = [];
 		this.scroll = 0;
 		this.autoscroll = autoscroll;
-		this.defaultbg = defaultbg;
+		this.style = stylesheet;
+		this.className = className;
 		this.t = term;
-		this.t.o.on('resize', this.calculateSize);
+		this.t.o.on('resize', this.calculateSize.bind(this));
 		this.calculateSize();
 	}
 
@@ -91,30 +104,20 @@ class Scroll {
 			this.redraw(this.height-change); //+-1
 	}
 	
-	// so here's something to consider...
-	// when moving the scroll window, how should the contents move?
-	// should it try to keep the text in the same position,
-	// or keep the same line at the top / bottom of the window?
-	// same with inserting/removing text,
-	// should it try to keep as much of the text at the same position on screen,
-	// or try to keep a row visible, etc.
-
-	// maybe make this configurable!
-	// types of scrolling windows:
-	// chat pane (size indepentant of contents, scroll to bottom, etc.)
-	// user/room lists (size increases as it gets more full, maybe scroll if it gets too big)
-	// input pane (size increase?)
-	// BUT!~
-	// why even allow lines to be inserted in the middle?
-	// this isn't really important lol
-	
 	calculateSize() {
 		var width = this.t.width;
 		var height = this.t.height - this.above - this.below;
 		if (width != this.width || height != this.height) {
+			if (height <= 0) {
+				throw "resize too small :("
+			}
+			var atBottom = this.atBottom();
 			this.width = width;
 			this.height = height;
+			if (atBottom && this.autoscroll)
+				this.scroll = Math.max(0, this.lines.length - this.height);
 			this.redraw();
+			this.appendLines("resize");
 		}
 	}
 	
@@ -186,19 +189,15 @@ class Scroll {
 			);
 		}
 	}
-	//idea: instead of handling all 18 cases for line insertion,
-	//just make a system of storing a list of all line movements that need to be made, and then
-	// figure out how to rearrange what's on screen to match that, optimally
-	//nnnnn
 	
 	redraw(start = 0, end = this.height-1) {
 		for (var i = start; i <= end; i++) {
 			this.t.locate(0, this.above+i);
 			var pos = i + this.scroll;
 			if (this.lines[pos] === undefined)
-				this.t.fillLine("",this.defaultbg);
+				this.t.fillLine("", this.style[this.className].bgcolor);
 			else
-				this.t.fillLine(this.lines[pos],this.defaultbg);
+				this.t.fillLine(this.lines[pos], this.style[this.className].bgcolor);
 		}
 	}
 }
@@ -214,35 +213,36 @@ class ScrollStack {
 // ideally, this should be able to queue several changes and then display them all at once
 // perhaps at first just things like "insert these 10 messages on the end" or whatever
 
+var style = {
+	main: {
+		bgcolor: 87,
+	}
+}
+
 var x = new XTerm(process.stdin, process.stdout);
 x.enter();
-var s = new Scroll(x, 0, 20, true, "\x1B[41m");
+var s = new Scroll(x, 0, 20, true, style, 'main');
 var i = 0;
 function add(){
 	s.appendLines("test"+i);
 	i++;
-	setTimeout(add,100);
+	setTimeout(add, 100);
 }
 add();
 
 //s.setScroll(-1);
 //setTimeout(()=>{s.setScroll(1)},1000);
 
-['SIGINT', 'SIGUSR1', 'SIGUSR2', 'uncaughtException', 'SIGTERM'].forEach((eventType) => {
+['SIGINT', 'SIGUSR1', 'SIGUSR2', 'SIGTERM'].forEach((eventType) => {
+	
 	process.on(eventType, process.exit);
 });
+process.on('uncaughtException', (e)=>{
+	x.leave();
+	console.error(e);
+	process.exit();
+})
 setTimeout(()=>{},10000);
-
-
-
-
-/*
-problem: converting high level Message objects into lines
-need to do styling and text wrapping
-maybe have an intermediate representation?
-with tags and whatever
-
-*/
 
 class Message {
 	constructor(json) {
