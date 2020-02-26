@@ -1,6 +1,10 @@
+// interface level 0
+// (write, ioctl, etc.)
+
 // interface level 1
-// raw terminal control
-class XTerm { // this should extend tty.WriteStream
+// generic terminal control
+// this one is for xterm, but others could be made for other terminals if needed
+class XTerm {
 	constructor(inp, out) {
 		this.o = out;
 		this.i = inp;
@@ -68,6 +72,32 @@ class Scroll {
 		this.t.o.on('resize', this.calculateSize);
 		this.calculateSize();
 	}
+
+	setPosition(above, below) {
+		// this only redraws lines when the size is increased
+		// if size is reduced, it is the responsibility of the surrounding windows to overwrite the old lines
+		var change = above - this.above;
+		this.above = above
+		if (change < 0)
+			this.redraw(0, -change);
+		var change = below - this.above;
+		if (change > 0)
+			this.redraw(this.height-change); //+-1
+	}
+	
+	// so here's something to consider...
+	// when moving the scroll window, how should the contents move?
+	// should it try to keep the text in the same position,
+	// or keep the same line at the top / bottom of the window?
+	// same with inserting/removing text,
+	// should it try to keep as much of the text at the same position on screen,
+	// or try to keep a row visible, etc.
+
+	// maybe make this configurable!
+	// types of scrolling windows:
+	// chat pane (size indepentant of contents, scroll to bottom, etc.)
+	// user/room lists (size increases as it gets more full, maybe scroll if it gets too big)
+	// input pane (size increase?)
 	
 	calculateSize() {
 		this.width = this.t.width;
@@ -108,7 +138,15 @@ class Scroll {
 	}
 }
 
+class ScrollStack {
+	// this will be a list of Scrolls
+	// stacked on top of each other
+	// so that one can be resized, and resize the others automatically,
+	// among other things
+}
+
 // todo: interface level 3: message list + tag styling etc.
+
 
 var x = new XTerm(process.stdin, process.stdout);
 x.enter();
@@ -124,3 +162,49 @@ setTimeout(()=>{s.setScroll(1)},1000);
 });
 setTimeout(()=>{},10000);
 
+
+
+
+/*
+problem: converting high level Message objects into lines
+need to do styling and text wrapping
+maybe have an intermediate representation?
+with tags and whatever
+
+*/
+
+class Message {
+	constructor(json) {
+		this.room = new Room(json.tag || 'any');
+		if (json.sender)
+			this.sender = new User(json.sender);
+		this.type = json.type;
+		
+		
+	}
+}
+
+// each block lists a style
+// which provides a list of properties:
+// (if not specified, they are inheritied from the outer blocks)
+// - text color
+// - background color
+// - bold
+// - underline
+// for block elements:
+// - left margin
+// - 
+
+[
+	{block: "sender", contents: [
+		{inline: "username", contents: "Multi-Color Graphics"},
+		":",
+	], right: {
+		inline: "time", contents: "10:30 pm"
+	}},
+	{block: "message", contents: [
+		"the",
+		{inline: "bold", contents: "sand"},
+		"can be eaten"
+	]},
+]
