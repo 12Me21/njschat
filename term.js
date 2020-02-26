@@ -8,7 +8,9 @@ class XTerm {
 	constructor(inp, out) {
 		this.o = out;
 		this.i = inp;
-		process.on('exit', ()=>{ // this will cause a memory leak
+		// these event listeners WILL CAUSE A MEMORY LEAK
+		// if you ever destroy a terminal object
+		process.on('exit', ()=>{
 			this.leave();
 		});
 		this.o.on('resize', ()=>{
@@ -24,13 +26,15 @@ class XTerm {
 	}
 	
 	enter() {
-		this.i.setRawMode(true);
+		//this.i.setRawMode(true);
 		this.write("\x1B[?1049h");
 	}
 	
 	leave() {
+		this.scrollRegion(0,999);
 		this.write("\x1B[?1049l");
 		this.i.setRawMode(false);
+		this.write("bye!\n");
 	}
 
 	scrollRegion(top, bottom) {
@@ -39,9 +43,9 @@ class XTerm {
 
 	scroll(dist) {
 		if (dist > 0)
-			this.write(`\x1B[${dist}S`);
+			this.write(`\x1B[${dist}T`);
 		else if (dist < 0)
-			this.write(`\x1B[${-dist}T`);
+			this.write(`\x1B[${-dist}S`);
 	}
 
 	locate(x, y) {
@@ -55,19 +59,21 @@ class XTerm {
 			this.write(`\x1B[H`);
 	}
 	
-	fillLine(text) {
-		this.write(`${text}\x1B[K`);
+	fillLine(text, bg) {
+		this.write(`${text}${bg}\x1B[K`);
 	}
 }
 
 // interface level 2:
 // scrolling buffers
 class Scroll {
-	constructor(term, above = 0, below = 0) {
+	constructor(term, above = 0, below = 0, autoscroll, defaultbg = "\x1B[48m") {
 		this.above = above;
 		this.below = below;
 		this.lines = [];
 		this.scroll = 0;
+		this.autoscroll = autoscroll;
+		this.defaultbg = defaultbg;
 		this.t = term;
 		this.t.o.on('resize', this.calculateSize);
 		this.calculateSize();
@@ -98,10 +104,18 @@ class Scroll {
 	// chat pane (size indepentant of contents, scroll to bottom, etc.)
 	// user/room lists (size increases as it gets more full, maybe scroll if it gets too big)
 	// input pane (size increase?)
+	// BUT!~
+	// why even allow lines to be inserted in the middle?
+	// this isn't really important lol
 	
 	calculateSize() {
-		this.width = this.t.width;
-		this.height = this.t.height - this.above - this.below;
+		var width = this.t.width;
+		var height = this.t.height - this.above - this.below;
+		if (width != this.width || height != this.height) {
+			this.width = width;
+			this.height = height;
+			this.redraw();
+		}
 	}
 	
 	setScroll(scroll) {
@@ -118,22 +132,73 @@ class Scroll {
 				this.redraw(0, change-1);
 		}
 	}
-	
-	insertLines(lines, start = this.lines.length, replace = 0) {
-		if (typeof lines == "string")
-			this.lines.splice(start, replace, lines);
-		else
-			this.lines.splice(start, replace, ...lines);
+
+	scrollHelper(amount, start = 0, end = this.height-1){
+		this.t.scrollRegion(this.above+start, this.above+end);
+		this.t.scroll(amount);
 	}
+	
+	replaceLines(lines, start) {
+		if (typeof lines == "string")
+			lines = [lines];
+		this.lines.splice(start, lines.length, ...lines);
+		var insertRelative = start - this.scroll;
+		if (!sizeChange) {
+			if (insertRelative < this.height && insertRelative + lines.length > 0)
+				this.redraw(Math.max(insertRelative, 0), Math.min(insertRelative + lines.length, this.height)-1);
+		}
+	}
+	
+	atBottom() {
+		if (this.scroll == this.lines.length - this.height)
+			return 1;
+		if (this.scroll > this.lines.length - this.height)
+			return 2;
+		return 0;
+	}
+	
+	appendLines(lines) {
+		if (typeof lines == "string")
+			lines = [lines];
+		if (!lines.length)
+			return;
+		var oldLen = this.lines.length;
+		var atBottom = this.atBottom();
+		this.lines.push(lines);
+		// adding this as a special case because it's the most common
+		var insertRelative = oldLen - this.scroll;
+		if (atBottom && this.autoscroll && oldLen >= this.height) {
+			if (lines.length < this.height) {
+				this.scrollHelper(-lines.length);
+				this.scroll += lines.length;
+				this.redraw(this.height - lines.length, this.height-1);
+			} else {
+				this.redraw();
+			}
+		} else if (insertRelative >= this.height) {
+			// nothing to draw (inserted below screen)
+		} else if (-insertRelative >= lines.length) {
+			// nothing to draw (inserted above screen)
+		} else { //inserted on screen (should only happen when screen is not full) (or if you somehow scrolled past the bottom limit)
+			this.redraw(
+				Math.max(insertRelative, 0),
+				Math.min(insertRelative + lines.length, this.height)-1
+			);
+		}
+	}
+	//idea: instead of handling all 18 cases for line insertion,
+	//just make a system of storing a list of all line movements that need to be made, and then
+	// figure out how to rearrange what's on screen to match that, optimally
+	//nnnnn
 	
 	redraw(start = 0, end = this.height-1) {
 		for (var i = start; i <= end; i++) {
 			this.t.locate(0, this.above+i);
 			var pos = i + this.scroll;
 			if (this.lines[pos] === undefined)
-				this.t.fillLine("");
+				this.t.fillLine("",this.defaultbg);
 			else
-				this.t.fillLine(this.lines[pos]);
+				this.t.fillLine(this.lines[pos],this.defaultbg);
 		}
 	}
 }
@@ -146,16 +211,22 @@ class ScrollStack {
 }
 
 // todo: interface level 3: message list + tag styling etc.
-
+// ideally, this should be able to queue several changes and then display them all at once
+// perhaps at first just things like "insert these 10 messages on the end" or whatever
 
 var x = new XTerm(process.stdin, process.stdout);
 x.enter();
-var s = new Scroll(x, 0, 0);
-s.insertLines("test");
-s.insertLines("test2");
-s.redraw();
-s.setScroll(-1);
-setTimeout(()=>{s.setScroll(1)},1000);
+var s = new Scroll(x, 0, 20, true, "\x1B[41m");
+var i = 0;
+function add(){
+	s.appendLines("test"+i);
+	i++;
+	setTimeout(add,100);
+}
+add();
+
+//s.setScroll(-1);
+//setTimeout(()=>{s.setScroll(1)},1000);
 
 ['SIGINT', 'SIGUSR1', 'SIGUSR2', 'uncaughtException', 'SIGTERM'].forEach((eventType) => {
 	process.on(eventType, process.exit);
