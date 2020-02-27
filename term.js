@@ -1,11 +1,14 @@
 // interface level 0
 // (write, ioctl, etc.)
 
+const EventEmitter = require('events');
+
 // interface level 1
 // generic terminal control
 // this one is for xterm, but others could be made for other terminals if needed
-class XTerm {
+class XTerm extends EventEmitter {
 	constructor(inp, out) {
+		super();
 		this.o = out;
 		this.i = inp;
 	}
@@ -18,6 +21,7 @@ class XTerm {
 	updateSize(){
 		this.width = this.o.columns;
 		this.height = this.o.rows;
+		this.emit('resize');
 	}
 
 	write(x) {
@@ -78,20 +82,17 @@ class XTerm {
 
 // interface level 2:
 // scrolling buffers
-class Scroll {
-	constructor(term, above = 0, below = 0, autoscroll, stylesheet, className) {
-		this.above = above;
-		this.below = below;
+class Window {
+	constructor(term, above = 0, height = 0, autoscroll, stylesheet, className) {
 		this.lines = [];
 		this.scroll = 0;
 		this.autoscroll = autoscroll;
 		this.style = stylesheet;
 		this.className = className;
 		this.t = term;
-		this.t.o.on('resize', this.calculateSize.bind(this));
-		this.calculateSize();
+		this.resize(above, height);
 	}
-
+	
 	setPosition(above, below) {
 		// this only redraws lines when the size is increased
 		// if size is reduced, it is the responsibility of the surrounding windows to overwrite the old lines
@@ -103,21 +104,18 @@ class Scroll {
 		if (change > 0)
 			this.redraw(this.height-change); //+-1
 	}
-	
-	calculateSize() {
+
+	// width is implied from the terminal width
+	resize(above = this.above, height = this.height) {
 		var width = this.t.width;
-		var height = this.t.height - this.above - this.below;
-		if (width != this.width || height != this.height) {
-			if (height <= 0) {
-				throw "resize too small :("
-			}
+		if (above != this.above || height != this.height || width != this.width) {
 			var atBottom = this.atBottom();
-			this.width = width;
+			this.width = this.t.width;
 			this.height = height;
+			this.above = above;
 			if (atBottom && this.autoscroll)
 				this.scroll = Math.max(0, this.lines.length - this.height);
 			this.redraw();
-			this.appendLines("resize");
 		}
 	}
 	
@@ -202,11 +200,28 @@ class Scroll {
 	}
 }
 
-class ScrollStack {
+class Windows {
+	constructor(term, stylesheet) {
+		this.style = stylesheet;
+		this.t = term;
+		this.windows = [];
+		this.t.on('resize', ()=>{
+			this.windows.forEach(window => {
+				window.resize();
+			});
+		});
+	}
+	
+	createWindow(start, height, className, autoscroll) {
+		return new Window(this.t, start, height, autoscroll, this.style, className);
+	}
 	// this will be a list of Scrolls
 	// stacked on top of each other
 	// so that one can be resized, and resize the others automatically,
 	// among other things
+	// each window should be sized as either
+	// a fixed size, or based on content
+	// with one window taking up the remaining space
 }
 
 // todo: interface level 3: message list + tag styling etc.
@@ -216,12 +231,19 @@ class ScrollStack {
 var style = {
 	main: {
 		bgcolor: 87,
+	},
+	main2: {
+		bgcolor: 125,
 	}
 }
 
-var x = new XTerm(process.stdin, process.stdout);
-x.enter();
-var s = new Scroll(x, 0, 20, true, style, 'main');
+var term = new XTerm(process.stdin, process.stdout);
+term.enter();
+var stack = new Windows(term, style);
+var s = stack.createWindow(0,10,'main',true);
+var s2 = stack.createWindow(10,10,'main2',true);
+stack.windows.push(s);
+stack.windows.push(s2);
 var i = 0;
 function add(){
 	s.appendLines("test"+i);
@@ -238,7 +260,7 @@ add();
 	process.on(eventType, process.exit);
 });
 process.on('uncaughtException', (e)=>{
-	x.leave();
+	term.leave();
 	console.error(e);
 	process.exit();
 })
