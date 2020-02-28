@@ -53,21 +53,34 @@ class XTerm extends EventEmitter {
 			if (key == "d")
 				this.setCursorPos(this.csrx+1, this.csry);
 			this.emit('key', key);
-		}
+		};
 		this.onResize = ()=>{
 			this.width = this.o.columns;
 			this.height = this.o.rows;
+			this.scrollTop = undefined;
+			this.scrollBottom = undefined;
 			if (this.cursorVisible)
 				this.locate(this.csrx, this.csry);
 			this.emit('resize');
-		}
+		};
+		this.onContinue = ()=>{
+			this.i.setRawMode(true);
+			this.halt = false;
+			this.scrollTop = undefined;
+			this.scrollBottom = undefined;
+			this.write("\x1B[?1049h");
+			this.onResize(); // this is going to send too many events
+			this.emit("resume");
+			
+		};
 	}
 	
 	write(x) {
 		if (!this.halt)
 			this.o.write(x);
 	}
-	
+
+	// Take over terminal
 	enter() {
 		this.i.setRawMode(true);
 		this.i.on('data', this.onKey);
@@ -80,6 +93,8 @@ class XTerm extends EventEmitter {
 		this.write("\x1B[?1049h");
 	}
 
+	// Clean up terminal + remove events
+	// destructor
 	leave() {
 		this.i.removeListener('data', this.onKey);
 		this.o.removeListener('resize', this.onResize);
@@ -87,39 +102,31 @@ class XTerm extends EventEmitter {
 		process.removeListener('exit', this.onKill);
 		process.removeListener('SIGTERM', this.onKill);
 		process.removeListener('SIGINT', this.onKill);
+		process.removeListener('SIGCONT', this.onContinue);
 		
-		this.scrollRegion(0,999);
-		this.write("\x1B[?1049l");
+		this.write("\x1B[r"); // reset scroll region
+		this.write("\x1B[?1049l"); // main buffer
 		this.i.setRawMode(false);
-		this.halt = true;
 		//this.write("bye!\n");
+		this.halt = true;
 	}
 	
+	// called when process is suspended (usually bound to ctrl+z)
 	suspend() {
-		this.scrollRegion(0,999);
-		this.write("\x1B[?1049l");
+		this.write("\x1B[r"); // reset scroll region
+		this.write("\x1B[?1049l"); // switch to main buffer
 		this.i.setRawMode(false);
-		process.once('SIGCONT', ()=>{
-			this.resume();
-		});
+		process.once('SIGCONT', this.onContinue);
 		this.halt = true;
 		process.kill(process.pid,"SIGTSTP");
 	}
-
-	resume() {
-		this.i.setRawMode(true);
-		this.halt = false;
-		this.write("\x1B[?1049h");
-		this.onResize(); // this is going to send too many events
-		this.emit("resume");
-	}
 	
 	scrollRegion(top, bottom) {
-//		if (this.scrollTop === top && this.scrollBottom === bottom)
-//			return;
+		if (this.scrollTop === top && this.scrollBottom === bottom)
+			return;
 		this.write(`\x1B[${top+1};${bottom+1}r`);
-//		this.scrollTop = top;
-//		this.scrollBottom = bottom;
+		this.scrollTop = top;
+		this.scrollBottom = bottom;
 	}
 
 	scroll(dist) {
@@ -140,6 +147,10 @@ class XTerm extends EventEmitter {
 			this.write(`\x1B[;${x+1}H`);
 		else
 			this.write(`\x1B[H`);
+	}
+
+	locateX(x){
+		this.write(`\x1B[${x+1}G`);
 	}
 	
 	color(color) {

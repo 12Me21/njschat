@@ -14,7 +14,7 @@ class Window {
 		this.t = term;
 		this.resize(above, height);
 	}
-
+	
 	// todo: make this more efficient when width doesn't change
 	// width is implied from the terminal width
 	resize(above = this.above, height = this.height) {
@@ -62,6 +62,13 @@ class Window {
 		}
 		this.t.scrollRegion(this.above+start, this.above+end);
 		this.t.scroll(amount);
+		// update scrollbar
+		if (this.scrollbar) {
+			for (var i=start; i<= end; i++) {
+				this.t.locate(this.width-1, i);
+				this.t.write(this.t.color(this.style[this.className].scrollbg)+" ");
+			}
+		}
 	}
 	
 	replaceLines(lines, start) {
@@ -70,17 +77,17 @@ class Window {
 		this.lines.splice(start, lines.length, ...lines);
 		var insertRelative = start - this.scroll;
 		if (!sizeChange) {
-			if (insertRelative < this.height && insertRelative + lines.length > 0)
+			if (insertRelative < this.height && insertRelative + lines.length > 0) {
 				this.redraw(Math.max(insertRelative, 0), Math.min(insertRelative + lines.length, this.height)-1);
+			}
 		}
 	}
 
 	show() {
 		this.visible = true;
-		//if (this.dirty) {
-		this.redraw_external();
-		this.dirty = false;
-		//}
+		this.t.hideCursor();
+		this.redraw();
+		this.t.showCursor();
 	}
 
 	hide() {
@@ -128,7 +135,8 @@ class Window {
 			this.t.showCursor();
 		}
 	}
-	
+
+	// do not call this yourself
 	redraw(start = 0, end = this.height-1) {
 		if (!this.visible) {
 			this.dirty = true;
@@ -142,6 +150,10 @@ class Window {
 				this.t.fillLine("", this.style[this.className].bgcolor);
 			else
 				this.t.fillLine(this.lines[pos], this.style[this.className].bgcolor);
+			if (this.scrollbar) {
+				this.t.locateX(this.width-1);
+				this.t.write(this.t.color(this.style[this.className].scrollbg)+" ");
+			}
 			if (i < end)
 				this.t.nextLine();
 		}
@@ -202,16 +214,18 @@ var style = {
 	},
 	main: {
 		bgcolor: 87,
+		scrollbg: 96,
 	},
 	main2: {
 		bgcolor: 125,
+		scrollbg: 96,
 	}
 }
 
 var term = new XTerm(process.stdin, process.stdout);
 term.enter();
 var stack = new Windows(term, style);
-var s = stack.createWindow(0,10,'main',true,true);
+var s = stack.createWindow(0,10,'main',false,true);
 var s2 = stack.createWindow(0,10,'main2',true,true);
 var i = 0;
 function add(){
