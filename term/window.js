@@ -3,7 +3,7 @@ const XTerm = require("./xterm.js");
 // interface level 2:
 // scrolling buffers
 class Window {
-	constructor(term, above = 0, height = 0, stylesheet, className, autoscroll, scrollbar) {
+	constructor(term, above = 0, height = 0, stylesheet, className, autoscroll, scrollbar, sizeType) {
 		this.visible = true;
 		this.lines = [];
 		this.scroll = 0;
@@ -13,6 +13,7 @@ class Window {
 		this.className = className;
 		this.t = term;
 		this.resize(above, height);
+		this.sizeType = sizeType;
 	}
 
 	// improve this
@@ -196,6 +197,11 @@ class Window {
 	}
 }
 
+// each window has a size calculation type:
+// - fixed size
+// - size based on contents (with minimum?)
+// - fill remaining space (only one window can have this)
+
 class Windows {
 	constructor(term, stylesheet) {
 		this.style = stylesheet;
@@ -327,25 +333,22 @@ class Message {
 // - 
 
 [
-	{block: "sender", contents: [
-		{inline: "username", contents: "Multi-Color Graphics"},
+	{tag: "sender", contents: [
+		{tag: "username", contents: "Multi-Color Graphics"},
 		":",
 	], right: {
-		inline: "time", contents: "10:30 pm"
+		tag: "time", contents: "10:30 pm"
 	}},
-	{block: "message", contents: [
+	{tag: "message", contents: [
 		"the",
-		{inline: "bold", contents: "sand"},
+		{tag: "bold", contents: "sand"},
 		"can be eaten"
 	]},
 ]
 
-function processElement(contents, callback, stack = []){
-	if (typeof contents == 'string') {
-		callback(contents);
-	} else if (contents instanceof Array) { //
-		contents.forEach((element)=>{
-			prr
-		});
-	}
-}
+// to resolve style
+// - check styles matching current element
+// - check styles matched by parent, etc.
+// so, need to keep track of a stack of parents styles
+// and then a "default" style (set by window)
+

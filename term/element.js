@@ -6,6 +6,7 @@
 // - scrollbgcolor: color - color of scrollbar background
 // - bold: boolean - bold
 // - underline: boolean - underlined
+// - blockbgcolor: color
 
 class Stylesheet {
 	constructor(styles) {
@@ -44,11 +45,17 @@ function processElement(element, stylesheet, callback, stack) {
 	if (typeof element.contents == 'string') {
 		callback(element.contents, styles);
 	} else if (element.contents instanceof Array) { //
+		if (element.block) {
+			callback(true, styles);
+		}
 		stack.push(styles);
 		element.contents.forEach((element)=>{
 			processElement(element, stylesheet, callback, stack);
 		});
 		stack.pop();
+		if (element.block) {
+			callback(false, styles);
+		}
 	}
 }
 
@@ -57,21 +64,36 @@ var styles = new Stylesheet({
 		bgcolor: "white",
 		color: "black",
 	},
+	bold: {
+		bold: true,
+	},
+	username: function(element) {
+		return {
+			color: element.user.uid % 256,
+		};
+	}
 });
 
 var element = {tag: "main", contents:[
 	{tag: "sender", contents: [
-		{tag: "username", contents: "Multi-Color Graphics"},
+		{tag: "username", user: {uid:286}, contents: "Multi-Color Graphics"},
 		":",
 	], right: {
 		tag: "time", contents: "10:30 pm"
 	}},
-	{tag: "message", contents: [
+	{tag: "message", block: true, contents: [
 		"the",
 		{tag: "bold", contents: "sand"},
 		"can be eaten"
 	]},
 ]}
 
+// todo: make element parser an iterable(?)
+
+// idea: all text must be inside a block
+// that way, there only needs to be 3? types of callback values
+// - block start
+// - normal text
+// - end
 
 processElement(element, styles, console.log, []);
