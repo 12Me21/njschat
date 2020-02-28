@@ -68,10 +68,9 @@ class XTerm extends EventEmitter {
 			this.halt = false;
 			this.scrollTop = undefined;
 			this.scrollBottom = undefined;
-			this.write("\x1B[?1049h");
+			this.write("\x1B[?1049h\x1B[?12l");
 			this.onResize(); // this is going to send too many events
 			this.emit("resume");
-			
 		};
 	}
 	
@@ -90,7 +89,7 @@ class XTerm extends EventEmitter {
 		process.once('SIGTERM', this.onKill);
 		process.once('SIGINT', this.onKill);
 		this.onResize();
-		this.write("\x1B[?1049h");
+		this.write("\x1B[?1049h\x1B[?12l");
 	}
 
 	// Clean up terminal + remove events
@@ -129,6 +128,8 @@ class XTerm extends EventEmitter {
 		this.scrollBottom = bottom;
 	}
 
+	// it's important that the fucking bg color is set correctly first
+	// otherwise you get flickering
 	scroll(dist) {
 		if (dist > 0)
 			this.write(`\x1B[${dist}T`);
@@ -156,11 +157,13 @@ class XTerm extends EventEmitter {
 	color(color) {
 		return `\x1B[48;5;${color}m`;
 	}
-	
-	fillLine(text, bg) {
+
+	fillLine(text, bg, scrollbar) {
 		this.write(`${this.color(bg)}${text}\x1B[K`);
+		if (scrollbar)
+			this.write(`\x1B[${this.width}G${this.color(scrollbar)} `);
 	}
-	
+
 	showCursor() {
 		if (this.cursorVisible == true)
 			return;
